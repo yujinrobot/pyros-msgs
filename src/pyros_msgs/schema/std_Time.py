@@ -41,6 +41,7 @@ import marshmallow
 try:
     import std_msgs.msg as std_msgs
     import genpy
+    import rospy
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
@@ -48,12 +49,13 @@ except ImportError:
     pyros_setup.configurable_import().configure().activate()
     import std_msgs.msg as std_msgs
     import genpy
+    import rospy
 
 
 # To be able to run doctest directly we avoid relative import
-from pyros_msgs.decorators import with_explicitly_matched_type
+from pyros_msgs.schema.decorators import with_explicitly_matched_type
 
-from pyros_msgs import RosFieldInt32
+from pyros_msgs.schema import RosFieldInt32
 
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate
@@ -62,10 +64,11 @@ from pyros_msgs import RosFieldInt32
 
 # this can be a field for Ros definition, but is actually a schema that need to match rostime
 @with_explicitly_matched_type(genpy.rostime.Time)
-class RosFieldTime(marshmallow.Schema):
+class _RosFieldTime(marshmallow.Schema):
     secs = RosFieldInt32()
     nsecs = RosFieldInt32()
 
+RosFieldTime = lambda: marshmallow.fields.Nested(_RosFieldTime)
 
 #
 # Schemas declaration
@@ -85,9 +88,7 @@ class RosMsgTime(marshmallow.Schema):
 
     >>> schema = RosMsgTime(strict=True)
 
-    >>> rosmsgFourtwo = std_msgs.Time()
-    >>> rosmsgFourtwo.data.secs = 42
-    >>> rosmsgFourtwo.data.nsecs = 123456789
+    >>> rosmsgFourtwo = std_msgs.Time(rospy.Time(secs = 42, nsecs = 123456789))
     >>> marshalledFourtwo, errors = schema.dump(rosmsgFourtwo)
     >>> marshmallow.pprint(marshalledFourtwo) if not errors else print("ERRORS {0}".format(errors))
     {u'data': {u'nsecs': 123456789, u'secs': 42}}
@@ -107,6 +108,6 @@ class RosMsgTime(marshmallow.Schema):
     >>> schema.load(schema.dump(randomRosTime).data).data == randomRosTime
     True
     """
-    data = marshmallow.fields.Nested(RosFieldTime)
+    data = RosFieldTime()
 
 

@@ -7,10 +7,10 @@ import marshmallow
 import nose
 
 # "private" decorators
-from pyros_msgs import wraps_cls
+from pyros_msgs.schema import wraps_cls
 
 # public decorators
-from pyros_msgs import with_explicitly_matched_type
+from pyros_msgs.schema import with_explicitly_matched_type
 
 
 #

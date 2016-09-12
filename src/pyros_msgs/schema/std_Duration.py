@@ -50,9 +50,9 @@ except ImportError:
 
 
 # To be able to run doctest directly we avoid relative import
-from pyros_msgs.decorators import with_explicitly_matched_type
+from pyros_msgs.schema.decorators import with_explicitly_matched_type
 
-from pyros_msgs import RosFieldInt32
+from pyros_msgs.schema import RosFieldInt32
 
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate

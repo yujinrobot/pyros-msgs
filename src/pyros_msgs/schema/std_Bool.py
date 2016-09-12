@@ -59,7 +59,7 @@ except ImportError:
 
 
 # To be able to run doctest directly we avoid relative import
-from pyros_msgs.decorators import with_explicitly_matched_type
+from pyros_msgs.schema.decorators import with_explicitly_matched_type
 
 # Keeping field declaration separate in case we want to extend it later
 RosFieldBool = marshmallow.fields.Boolean
