@@ -19,7 +19,9 @@
   <depend version_gte="1.11.19">rospy</depend>
   <depend version_gte="0.5.9">std_msgs</depend>
 
+  <build_depend version_gte="0.10.0">roslint</build_depend>
   <build_depend version_gte="0.2.10">message_generation</build_depend>
+
   <exec_depend version_gte="0.4.12">message_runtime</exec_depend>
 
   <!-- documentation dependencies -->
