@@ -2,9 +2,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 
-import marshmallow
-import std_msgs.msg as std_msgs
-
 """
 Defining Schema for basic ros types
 
@@ -39,28 +36,77 @@ Also some serialization behavior adjustments have been done :
 
 """
 
+
+import marshmallow
+try:
+    import std_msgs.msg as std_msgs
+    import genpy
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us to the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import std_msgs.msg as std_msgs
+    import genpy
+
+
+# To be able to run doctest directly we avoid relative import
+from pyros_msgs.decorators import with_explicitly_matched_type
+
+from pyros_msgs import RosFieldInt32
+
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate
 # KISS as much as possible for now
 
 
-class RosTime(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
+# this can be a field for Ros definition, but is actually a schema that need to match rostime
+@with_explicitly_matched_type(genpy.rostime.Time)
+class RosFieldTime(marshmallow.Schema):
+    secs = RosFieldInt32()
+    nsecs = RosFieldInt32()
 
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
 
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
+#
+# Schemas declaration
+# Since we want to provide seamless but safe rospy message type <-> pyros dict conversion
+# We need to validate on serialization (dump to dict)
+# and create a rospy message type on deserialization (load from dict)
+#
+
+
+@with_explicitly_matched_type(std_msgs.Time)
+class RosMsgTime(marshmallow.Schema):
+    """
+    RosMsgTime handles serialization from std_msgs.Time to python dict
+    and deserialization from python dict to std_msgs.Time
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgTime(strict=True)
+
+    >>> rosmsgFourtwo = std_msgs.Time()
+    >>> rosmsgFourtwo.data.secs = 42
+    >>> rosmsgFourtwo.data.nsecs = 123456789
+    >>> marshalledFourtwo, errors = schema.dump(rosmsgFourtwo)
+    >>> marshmallow.pprint(marshalledFourtwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': {u'nsecs': 123456789, u'secs': 42}}
+    >>> value, errors = schema.load(marshalledFourtwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Time.Time'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))  # doctest: +NORMALIZE_WHITESPACE
+    data:
+      secs: 42
+      nsecs: 123456789
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosTime = std_msgs.Time()
+    >>> randomRosTime.data.secs = random.choice([4, 2, 1])
+    >>> randomRosTime.data.nsecs = random.choice([123, 456, 789])
+    >>> schema.load(schema.dump(randomRosTime).data).data == randomRosTime
+    True
+    """
+    data = marshmallow.fields.Nested(RosFieldTime)
+
 

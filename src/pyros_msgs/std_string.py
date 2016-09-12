@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import marshmallow
-import std_msgs.msg as std_msgs
-
 """
 Defining Schema for basic ros types
 
@@ -38,28 +35,59 @@ Also some serialization behavior adjustments have been done :
 
 """
 
+import marshmallow
+try:
+    import std_msgs.msg as std_msgs
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us to the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import std_msgs.msg as std_msgs
+
+
+# To be able to run doctest directly we avoid relative import
+from pyros_msgs.decorators import with_explicitly_matched_type
+
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate
 # KISS as much as possible for now
 
+RosFieldString = marshmallow.fields.String
 
-class RosString(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
 
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
+@with_explicitly_matched_type(std_msgs.String)
+class RosMsgString(marshmallow.Schema):
+    """
+    RosMsgString handles serialization from std_msgs.String to python dict
+    and deserialization from python dict to std_msgs.String
 
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgString(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.String(data='fortytwo')
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': u'fortytwo'}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._String.String'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: fortytwo
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._String.String'>
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosString = std_msgs.String(random.choice(['four', 'two', 'one']))
+    >>> schema.load(schema.dump(randomRosString).data).data == randomRosString
+    True
+    """
+    data = RosFieldString()
 

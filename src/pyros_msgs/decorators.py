@@ -18,7 +18,7 @@ def wraps_cls(original_cls):
     def wrapper(wrapper_cls):
         """
         Update wrapper_cls to look like original_cls.
-        If this docstring endsup in your decorated class, you should define the __doc__ when declaring that class.
+        If this docstring ends up in your decorated class, you should define the __doc__ when declaring that class.
         Like:
 
         @wraps_cls(cls)
@@ -67,14 +67,18 @@ def wraps_cls(original_cls):
 #
 
 
-def with_field_validation(field, ros_type):
+# This is for explicit matching types.
+
+def with_explicitly_matched_type(ros_type):
     """
-    Decorator to add schema validation for a Ros Type toa  Schema class
-    :param field: the name of the field to validate
-    :param ros_type: the ros_type to validate
+    Decorator to add type check and type creation for a schema
+    :param ros_type: the ros_type to check for and generate
     :return:
+
+    TODO  : doctest
     """
-    def class_field_validation_decorator(cls):
+
+    def schema_explicitly_matched_type_decorator(cls):
         assert isinstance(cls, marshmallow.schema.SchemaMeta)
 
         @wraps_cls(cls)
@@ -82,49 +86,20 @@ def with_field_validation(field, ros_type):
             # TODO : closure
             # TODO : proxy ?
             # This wrapper inherits. Maybe a proxy would be better ?
-            # We cannot have a doc here, becaus e it is not writeable in python 2.7
+            # We cannot have a doc here, because it is not writeable in python 2.7
             # instead we reuse the one from the wrapped class
             __doc__ = cls.__doc__
-            @marshmallow.validates(field)
-            def _validate_ros_int_type(self, data, pass_original=True):
+
+            @marshmallow.pre_dump
+            def _verify_ros_type(self, data, pass_original=True):
                 # introspect data
-                if not isinstance(data[field], ros_type):
-                    raise marshmallow.ValidationError('data[{0}] should be {1}'.format(field, ros_type))
+                if not isinstance(data, ros_type):
+                    raise marshmallow.ValidationError('data type should be {0}'.format(ros_type))
+
+            @marshmallow.post_load
+            def _make_ros_type(self, data):
+                data = ros_type(**data)
+                return data
 
         return Wrapper
-    return class_field_validation_decorator
-
-
-def with_schema_validation(ros_type):
-    """
-    Decorator to add schema validation for a Ros Type
-    :param ros_type: the ros_type to validate
-    :return:
-
-    TODO  : doctest
-    """
-    def _schema_validation_wrapper(f):
-        @marshmallow.validates_schema
-        def _validate_ros_int_type(self, data, pass_original=True):
-            # introspect data
-            if not isinstance(data, ros_type):
-                raise marshmallow.ValidationError('data should be {0}'.format(ros_type))
-
-        return _validate_ros_int_type
-    return _schema_validation_wrapper
-
-
-def with_factorymethod_on_deserialize(ros_type):
-    """
-    Decorator to add a factory method for a Ros Type to a schema
-    Allos creating a Ros message type on deserialization (load)
-    :param ros_type: the ros_type to create
-    :return:
-    """
-    def _factorymethod_wrapper(f):
-        @marshmallow.post_load
-        def _make_ros_type(self, data):
-            data = ros_type(data)
-            return data
-        return _make_ros_type
-    return _factorymethod_wrapper
+    return schema_explicitly_matched_type_decorator

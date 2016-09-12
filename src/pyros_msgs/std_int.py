@@ -48,11 +48,18 @@ This helps pyros deal efficiently with data only as dicts without worrying about
 
 
 import marshmallow
-import std_msgs.msg as std_msgs
+try:
+    import std_msgs.msg as std_msgs
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us to the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import std_msgs.msg as std_msgs
 
-# To be able to run doctest, resolving relative to package problem
 
-from .decorators import with_field_validation, with_schema_validation, with_factorymethod_on_deserialize
+# To be able to run doctest directly we avoid relative import
+from pyros_msgs.decorators import with_explicitly_matched_type
 
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate
@@ -86,41 +93,305 @@ RosFieldUInt64 = marshmallow.fields.Integer
 # and create a rospy message type on deserialization (load from dict)
 #
 
-@with_schema_validation(std_msgs.Int8)
-@with_factorymethod_on_deserialize(std_msgs.Int8)
+@with_explicitly_matched_type(std_msgs.Int8)
 class RosMsgInt8(marshmallow.Schema):
     """
-    RosMsgInt8 handles serialization from {std_msgs.Int8} to python dict
-    and deserialization from python dict to {std_msgs.Int8}
+    RosMsgInt8 handles serialization from std_msgs.Int8 to python dict
+    and deserialization from python dict to std_msgs.Int8
 
-    >>> schema = RosMsgInt8()
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgInt8(strict=True)
 
     >>> rosmsgFortytwo = std_msgs.Int8(data=42)
     >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
-    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {{0}}".format(errors))
-    {{u'data': 42}}
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
     >>> value, errors = schema.load(marshalledFortytwo)
-    >>> type(value) if not errors else print("ERRORS {{0}}".format(errors))
-    <class '{ros_int_type}'>
-    >>> print(value) if not errors else print("ERRORS {{0}}".format(errors))
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Int8.Int8'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
     data: 42
 
     Invalidate message would report:
     >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
     >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
-    >>> print(errors)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Int8.Int8'>
 
     Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
 
     Load is the inverse of dump (getting only data member):
     >>> import random
-    >>> randomRosBool = std_msgs.Bool(random.choice([True, False]))
-    >>> schema.load(schema.dump(randomRosBool).data).data == randomRosBool
+    >>> randomRosInt = std_msgs.Int8(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
     True
     """
     data = RosFieldInt8()
-    pass
 
 
+@with_explicitly_matched_type(std_msgs.UInt8)
+class RosMsgUInt8(marshmallow.Schema):
+    """
+    RosMsgUInt8 handles serialization from std_msgs.UInt8 to python dict
+    and deserialization from python dict to std_msgs.UInt8
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgUInt8(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._UInt8.UInt8'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._UInt8.UInt8'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.UInt8(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldUInt8()
 
 
+@with_explicitly_matched_type(std_msgs.Int16)
+class RosMsgInt16(marshmallow.Schema):
+    """
+    RosMsgInt16 handles serialization from std_msgs.Int16 to python dict
+    and deserialization from python dict to std_msgs.Int16
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgInt16(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.Int16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Int16.Int16'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Int16.Int16'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.Int16(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldInt16()
+
+
+@with_explicitly_matched_type(std_msgs.UInt16)
+class RosMsgUInt16(marshmallow.Schema):
+    """
+    RosMsgUInt16 handles serialization from std_msgs.UInt16 to python dict
+    and deserialization from python dict to std_msgs.UInt16
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgUInt16(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._UInt16.UInt16'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._UInt16.UInt16'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.UInt16(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldUInt16()
+
+
+@with_explicitly_matched_type(std_msgs.Int32)
+class RosMsgInt32(marshmallow.Schema):
+    """
+    RosMsgInt32 handles serialization from std_msgs.Int32 to python dict
+    and deserialization from python dict to std_msgs.Int32
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgInt32(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.Int32(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Int32.Int32'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Int32.Int32'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.Int32(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldInt32()
+
+
+@with_explicitly_matched_type(std_msgs.UInt32)
+class RosMsgUInt32(marshmallow.Schema):
+    """
+    RosMsgUInt32 handles serialization from std_msgs.UInt32 to python dict
+    and deserialization from python dict to std_msgs.UInt32
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgUInt32(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.UInt32(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._UInt32.UInt32'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._UInt32.UInt32'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.UInt32(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldUInt32()
+
+
+@with_explicitly_matched_type(std_msgs.Int64)
+class RosMsgInt64(marshmallow.Schema):
+    """
+    RosMsgInt64 handles serialization from std_msgs.Int64 to python dict
+    and deserialization from python dict to std_msgs.Int64
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgInt64(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.Int64(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Int64.Int64'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Int64.Int64'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.Int64(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldInt64()
+
+
+@with_explicitly_matched_type(std_msgs.UInt64)
+class RosMsgUInt64(marshmallow.Schema):
+    """
+    RosMsgUInt64 handles serialization from std_msgs.UInt64 to python dict
+    and deserialization from python dict to std_msgs.UInt64
+
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgUInt64(strict=True)
+
+    >>> rosmsgFortytwo = std_msgs.UInt64(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    >>> marshmallow.pprint(marshalledFortytwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 42}
+    >>> value, errors = schema.load(marshalledFortytwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._UInt64.UInt64'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 42
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt8(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._UInt64.UInt64'>
+
+    Note since PEP https://www.python.org/dev/peps/pep-0237/  (python 2.4) int and long should mean the same thing for python
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosInt = std_msgs.UInt64(random.choice([4, 2, 1]))
+    >>> schema.load(schema.dump(randomRosInt).data).data == randomRosInt
+    True
+    """
+    data = RosFieldUInt64()

@@ -10,10 +10,12 @@ import nose
 from pyros_msgs import wraps_cls
 
 # public decorators
-from pyros_msgs import with_field_validation, with_schema_validation, with_factorymethod_on_deserialize
+from pyros_msgs import with_explicitly_matched_type
+
 
 #
-
+# Testing generic class wraps_cls decorator
+#
 
 class WrappedCheck(object):
     """ test doc value """
@@ -21,7 +23,7 @@ class WrappedCheck(object):
 
 
 @wraps_cls(WrappedCheck)
-class WrappedCheck(WrappedCheck):
+class WrapperCheck(WrappedCheck):
     __doc__ = WrappedCheck.__doc__  # to work with python 2.7 check http://bugs.python.org/issue12773
     # TODO : dynamically define this using functools assignments
 
@@ -41,67 +43,51 @@ class WrappedCheck(WrappedCheck):
 def test_wrap_cls():
     # TODO : dynamically define this using functools assignments
     # TODO : check these may be trivial... but better be safe
-    assert WrappedCheck.__module__ == WrappedCheck.get_module()
-    assert WrappedCheck.__doc__ == WrappedCheck.get_doc()
-    assert WrappedCheck.__name__ == WrappedCheck.get_name()
+    assert WrappedCheck.__module__ == WrapperCheck.get_module()
+    assert WrappedCheck.__doc__ == WrapperCheck.get_doc()
+    assert WrappedCheck.__name__ == WrapperCheck.get_name()
 
-    assert WrappedCheck.__module__ == __name__
-    assert WrappedCheck.__doc__ == """ test doc value """
-    assert WrappedCheck.__name__ == "WrappedCheck"
+    assert WrapperCheck.__module__ == __name__
+    assert WrapperCheck.__doc__ == """ test doc value """
+    assert WrapperCheck.__name__ == "WrappedCheck"
 
 #
-
+# Testing with_explicitly_matched_type decorator
+#
 
 Original = collections.namedtuple("Original", "answer")
 
-@with_field_validation('answer', int)
-class SchemaWithFieldValidation(marshmallow.Schema):
+
+@with_explicitly_matched_type(Original)
+class SchemaWithValidatedGeneratedType(marshmallow.Schema):
     """ doc test """
     answer = marshmallow.fields.Integer()
 
 
-def test_with_field_validation():
+def test_with_validated_generated_type():
 
-    assert SchemaWithFieldValidation.__module__ == __name__
-    assert SchemaWithFieldValidation.__doc__ == """ doc test """
-    assert SchemaWithFieldValidation.__name__ == "SchemaWithFieldValidation"
+    assert SchemaWithValidatedGeneratedType.__module__ == __name__
+    assert SchemaWithValidatedGeneratedType.__doc__ == """ doc test """
+    assert SchemaWithValidatedGeneratedType.__name__ == "SchemaWithValidatedGeneratedType"
 
-    orignal_ok = Original(answer=42)
-    orignal_invalid = Original(answer='fortytwo')
-    schema = SchemaWithFieldValidation()
+    original_ok = Original(answer=42)
+    original_invalid = Original(answer='fortytwo')
+    schema = SchemaWithValidatedGeneratedType(strict=True)  # we usually want to be strict and explicitely fail.
 
-    marshalled = schema.dump(orignal_ok)
+    # Testing serialization
+    marshalled = schema.dump(original_ok)
 
     assert len(marshalled.errors) == 0
     assert marshalled.data == {'answer': 42}
 
-    #with nose.assert_raises( ):
-    #schema.dump(orignal_invalid)
+    # Verifying validation actually happens
+    with nose.tools.assert_raises(marshmallow.ValidationError) as cm:
+        schema.dump(original_invalid)
 
-
-@with_schema_validation({'answer': 42})
-class SchemaWithSchemaValidation(marshmallow.Schema):
-    """ doc test """
-    answer = marshmallow.fields.Integer()
-
-
-class AnswerType(object):
-    def __init__(self, dict):
-        self.answer = dict['answer']
-
-@with_factorymethod_on_deserialize( AnswerType )
-class SchemaWithSchemaValidation(marshmallow.Schema):
-    """ doc test """
-    answer = marshmallow.fields.Integer()
-
-
-
-
-def test_with_schema_validation():
-    pass
-
-def test_with_factorymethod_on_deserialize():
-    pass
+    # Testing deserialization
+    unmarshalled = schema.load(marshalled.data)
+    assert len(unmarshalled.errors) == 0
+    assert unmarshalled.data == original_ok
 
 
 # Just in case we run this directly

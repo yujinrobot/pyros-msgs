@@ -48,12 +48,24 @@ Also some serialization behavior adjustments have been done :
 """
 
 import marshmallow
-import std_msgs.msg as std_msgs
+try:
+    import std_msgs.msg as std_msgs
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us to the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import std_msgs.msg as std_msgs
+
+
+# To be able to run doctest directly we avoid relative import
+from pyros_msgs.decorators import with_explicitly_matched_type
 
 # Keeping field declaration separate in case we want to extend it later
 RosFieldBool = marshmallow.fields.Boolean
 
 
+@with_explicitly_matched_type(std_msgs.Bool)
 class RosMsgBool(marshmallow.Schema):
     """
     RosMsgBool Schema handles serialization from std_msgs.msgs.Bool to python dict
@@ -89,7 +101,4 @@ class RosMsgBool(marshmallow.Schema):
     """
     data = RosFieldBool()
 
-    @marshmallow.post_load
-    def make_rosmsg(self, data):
-        return std_msgs.Bool(**data)
 

@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import marshmallow
-import std_msgs.msg as std_msgs
-
 """
 Defining Schema for basic ros types
 
@@ -39,92 +36,110 @@ Also some serialization behavior adjustments have been done :
 
 """
 
+
+import marshmallow
+try:
+    import std_msgs.msg as std_msgs
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us to the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import std_msgs.msg as std_msgs
+
+
+# To be able to run doctest directly we avoid relative import
+from pyros_msgs.decorators import with_explicitly_matched_type
+
 # Both pyros and rospy serialization could eventually be combined, to serialize only once and get a dict.
 # TODO : investigate
 # KISS as much as possible for now
 
+#
+# Fields declaration
+# Since the rospy message type member field is already a python int,
+# we do not need anything special here, we rely on marshmallow python type validation.
+# Yet we are specifying each on in case we want to extend it later...
+#
 
-class RosFloat(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
-
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
-
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
-
-RosFloat32 = RosFloat
-RosFloat64 = RosFloat
-
-class RosString(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
-
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
-
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
+RosFieldFloat32 = marshmallow.fields.Float
+RosFieldFloat64 = marshmallow.fields.Float
 
 
-class RosTime(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
+#
+# Schemas declaration
+# Since we want to provide seamless but safe rospy message type <-> pyros dict conversion
+# We need to validate on serialization (dump to dict)
+# and create a rospy message type on deserialization (load from dict)
+#
 
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
+@with_explicitly_matched_type(std_msgs.Float32)
+class RosMsgFloat32(marshmallow.Schema):
+    """
+    RosMsgFloat32 handles serialization from std_msgs.Float32 to python dict
+    and deserialization from python dict to std_msgs.Float32
 
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
+
+    >>> schema = RosMsgFloat32(strict=True)
+
+    >>> rosmsgFourtwo = std_msgs.Float32(data=4.2)
+    >>> marshalledFourtwo, errors = schema.dump(rosmsgFourtwo)
+    >>> marshmallow.pprint(marshalledFourtwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 4.2}
+    >>> value, errors = schema.load(marshalledFourtwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Float32.Float32'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 4.2
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Float32.Float32'>
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosFloat = std_msgs.Float32(random.choice([4.2, 2.1, 1.0]))
+    >>> schema.load(schema.dump(randomRosFloat).data).data == randomRosFloat
+    True
+    """
+    data = RosFieldFloat32()
 
 
-class RosDuration(marshmallow.fields.Field):
-    def _serialize(self, value, attr, obj):
-        """Pulls the value for the given key from the object, applies the
-        field's formatting and returns the result.
+@with_explicitly_matched_type(std_msgs.Float64)
+class RosMsgFloat64(marshmallow.Schema):
+    """
+    RosMsgFloat64 handles serialization from std_msgs.Float64 to python dict
+    and deserialization from python dict to std_msgs.Float64
 
-        :param str attr: The attribute or key to get from the object.
-        :param str obj: The object to pull the key from.
-        :raise ValidationError: In case of formatting problem
-        """
-        if value is None:
-            return ''
-        return value.title()
+    You should use strict Schema to trigger exceptions when trying to manipulate an unexpected type.
 
-    def _deserialize(self, value, attr, data):
-        """Deserialize ``value``.
-        :raise ValidationError: If an invalid value is passed or if a required value
-            is missing.
-        """
-        return bool(value)
+    >>> schema = RosMsgFloat64(strict=True)
+
+    >>> rosmsgFourtwo = std_msgs.Float64(data=4.2)
+    >>> marshalledFourtwo, errors = schema.dump(rosmsgFourtwo)
+    >>> marshmallow.pprint(marshalledFourtwo) if not errors else print("ERRORS {0}".format(errors))
+    {u'data': 4.2}
+    >>> value, errors = schema.load(marshalledFourtwo)
+    >>> type(value) if not errors else print("ERRORS {0}".format(errors))
+    <class 'std_msgs.msg._Float64.Float64'>
+    >>> print(value) if not errors else print("ERRORS {0}".format(errors))
+    data: 4.2
+
+    Invalidate message would report:
+    >>> rosmsgFortytwo = std_msgs.UInt16(data=42)
+    >>> marshalledFortytwo, errors = schema.dump(rosmsgFortytwo)
+    Traceback (most recent call last):
+     ...
+    ValidationError: data type should be <class 'std_msgs.msg._Float64.Float64'>
+
+    Load is the inverse of dump (getting only data member):
+    >>> import random
+    >>> randomRosFloat = std_msgs.Float64(random.choice([4.2, 2.1, 1.0]))
+    >>> schema.load(schema.dump(randomRosFloat).data).data == randomRosFloat
+    True
+    """
+    data = RosFieldFloat64()
