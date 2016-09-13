@@ -30,13 +30,13 @@ roslint_python(${${PROJECT_NAME}_PY_SRCS})
 # MESSAGES
 #####
 
-# add_message_files(
-#   DIRECTORY
-#     msg/http
-#   FILES
-#     HttpRequest.msg
-#     HttpResponse.msg
-# )
+add_message_files(
+  DIRECTORY
+    msg/http
+  FILES
+#    HttpRequest.msg
+    HttpStatusCode.msg
+)
 
 add_message_files(
   DIRECTORY
