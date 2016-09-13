@@ -1,0 +1,2 @@
+bool initialized_
+float32 data

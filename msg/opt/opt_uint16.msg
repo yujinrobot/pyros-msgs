@@ -1,0 +1,2 @@
+bool initialized_
+uint16 data

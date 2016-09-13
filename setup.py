@@ -7,7 +7,6 @@ from catkin_pkg.python_setup import generate_distutils_setup
 setup_args = generate_distutils_setup(
     packages=[
         'pyros_msgs',
-        'pyros_msgs.schema',
     ],
     package_dir={
         'pyros_msgs': 'src/pyros_msgs'

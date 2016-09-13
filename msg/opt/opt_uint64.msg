@@ -1,0 +1,2 @@
+bool initialized_
+uint64 data
