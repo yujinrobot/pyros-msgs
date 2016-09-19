@@ -2,7 +2,19 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 # Getting all msgs first (since our __file__ is set to ros generated __init__)
-from .msg import *
+
+try:
+    from .msg import *
+except ImportError as ie:
+    # if .msg not found, it s likely we are not interpreting this from devel/.
+    # importing our generated messages dynamically, using namespace packages (same as genpy generated __init__.py).
+    # Ref : http://stackoverflow.com/a/27586272/4006172
+    from pkgutil import extend_path
+    __path__ = extend_path(__path__, __name__)
+    # TODO : put this in pyros-setup, catkin_pip, pyros_utils, depending on what seems the better fit...
+    # Note that this requires sys.path to already be setup.
+    # It is a second step for ROS packages, after PYTHONPATH configuration...
+    from .msg import *
 
 # duck punching via module import relay
 from ._punch import (
