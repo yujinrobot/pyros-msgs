@@ -252,9 +252,3 @@ uint16 UNORDERED = 425
 uint16 multiple_stati = 207
 
 
-# Actual message structure
-# this is defined so that a response (using requests python package)
-# can be converted automatically into a message as much as possible...
-
-uint16 status_code
-

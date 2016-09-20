@@ -32,16 +32,10 @@ roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
 add_message_files(
   DIRECTORY
-    msg/http
+    msg
   FILES
 #    HttpRequest.msg
     HttpStatusCode.msg
-)
-
-add_message_files(
-  DIRECTORY
-    msg/opt
-  FILES
     opt_empty.msg
     opt_bool.msg
     opt_int8.msg
@@ -58,7 +52,6 @@ add_message_files(
     opt_time.msg
     opt_duration.msg
     opt_header.msg
-
 )
 
 #####
