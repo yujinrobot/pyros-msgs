@@ -32,10 +32,8 @@ roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
 add_message_files(
   DIRECTORY
-    msg
+    msg/opt_as_nested
   FILES
-#    HttpRequest.msg
-    HttpStatusCode.msg
     opt_empty.msg
     opt_bool.msg
     opt_int8.msg
@@ -52,6 +50,28 @@ add_message_files(
     opt_time.msg
     opt_duration.msg
     opt_header.msg
+)
+
+add_message_files(
+  DIRECTORY
+    msg/opt_as_array
+  FILES
+    test_opt_empty_as_array.msg
+    test_opt_bool_as_array.msg
+    test_opt_int8_as_array.msg
+    test_opt_int16_as_array.msg
+    test_opt_int32_as_array.msg
+    test_opt_int64_as_array.msg
+    test_opt_uint8_as_array.msg
+    test_opt_uint16_as_array.msg
+    test_opt_uint32_as_array.msg
+    test_opt_uint64_as_array.msg
+    test_opt_float32_as_array.msg
+    test_opt_float64_as_array.msg
+    test_opt_string_as_array.msg
+    test_opt_time_as_array.msg
+    test_opt_duration_as_array.msg
+    test_opt_header_as_array.msg
 )
 
 #####

@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-from .msg import (
+
+
+
+import collections
+
+from pyros_msgs.msg import (
     # no slot
     # None
 
@@ -26,7 +31,7 @@ import genpy
 import std_msgs.msg
 
 
-def duck_punch(msg_mod, default_data_value = None):
+def duck_punch(msg_mod, default_data_value=None):
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
         # excepting when passing initialized_. it is meant to be an internal field.
@@ -58,6 +63,7 @@ def duck_punch(msg_mod, default_data_value = None):
     # duck punching into genpy generated message classes, to set initialized_ field properly
     msg_mod.__init__ = init_punch
 
+
 #
 # default data values extracted from genpy.generator:default_value()
 #
@@ -80,3 +86,4 @@ duck_punch(opt_empty)  # default value should be unused here
 duck_punch(opt_time, genpy.Time())
 duck_punch(opt_duration, genpy.Duration())
 duck_punch(opt_header, std_msgs.msg.Header())
+
