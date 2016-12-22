@@ -22,7 +22,7 @@ catkin_python_setup()
 
 # Lint Python modules
 file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
-     RELATIVE ${PROJECT_SOURCE_DIR} src/pyros_test/*.py)
+     RELATIVE ${PROJECT_SOURCE_DIR} src/pyros_msgs/*.py)
 roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
 
@@ -73,19 +73,6 @@ add_message_files(
     test_opt_duration_as_array.msg
     test_opt_header_as_array.msg
 )
-
-#####
-# SERVICES
-#####
-
-# add_service_files(
-#   DIRECTORY
-#     srv
-#   FILES
-#    httpbin_ip.srv
-#    httpbin_get.srv
-#    httpbin_post.srv
-# )
 
 generate_messages(DEPENDENCIES std_msgs)
 
