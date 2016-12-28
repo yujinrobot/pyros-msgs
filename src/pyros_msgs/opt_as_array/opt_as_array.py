@@ -6,6 +6,7 @@ import collections
 import genpy
 import six
 import std_msgs.msg
+from pyros_msgs import ros_python_type_mapping, ros_python_default_mapping
 
 
 def duck_punch(msg_mod, opt_slot_list):
@@ -17,51 +18,106 @@ def duck_punch(msg_mod, opt_slot_list):
     """
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
-        if args or kwds:
-            if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
-                # so we can change it to kwarg to be more accepting (and more robust for changes)
-                kwds.update(zip([s for s in self.__slots__], args))
-                args = ()
+        if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
+            # so we can change it to kwarg to be more accepting (and more robust for changes)
+            kwds.update(zip([s for s in self.__slots__], args))
+            args = ()
 
-            # validating arg type (we should be more strict than ROS.)
-            # this will be used to accept data from outside.
-            # We need to take care of validating it as much as possible.
-            for s, st in [(_slot, _slot_type)
-                          for _slot, _slot_type in zip(self.__slots__, self._slot_types)
-                          if _slot in opt_slot_list]:
-                if st.endswith('[]'):
-                    sv = kwds.get(s)
-                    # if we have a list (and not a string)
-                    skip_type_validation = False
-                    if not isinstance(sv, six.string_types) and isinstance(sv, list):
-                        if sv:
-                            sv = sv[0]  # we only take the first element (this is an optional element expressed as array)
-                        else:
-                            kwds[s] = []  # if sv is empty we need to assign this directly
-                            skip_type_validation = True
-                    if not skip_type_validation and (
-                                # we get that from genpy.message.check_type()
-                                genpy.base.is_simple(st[:-2]) or
-                                st[:-2] == 'string' or
-                                st[:-2] == 'time' or
-                                st[:-2] == 'duration' or
-                                isinstance(sv, genpy.message.get_message_class(st[:-2]))
-                    ):  # validate the type of the value
-                        value = sv
-                        # special case for string type(to support unicode kwds)
-                        if st.startswith('string'):
-                            value = str(value)
-                        if value is not None:
-                            kwds[s] = [value]
-                    # otherwise we skip it.  # TODO : except ?
+        def validate_type(slot_value, slot_type):
+            """ Validate the type of the value, and modify the slot dict on the fly"""
+            # if (  # we get that from genpy.message.check_type()
+            #     genpy.base.is_simple(slot_type) or
+            #     slot_type == 'string' or
+            #     slot_type == 'time' or
+            #     slot_type == 'duration' or
+            #     isinstance(slot_value, genpy.message.get_message_class(slot_type))
+            # ):  # validate the type of the value
+            #     # special case for string type(to support unicode kwds)
+            #     if slot_type.startswith('string'):
+            #         return str(slot_value)
+            #     # elif slot_type.startswith('time'):
+            #     #     return str(value)
+            #     # elif slot_type.startswith('duration'):
+            #     #     return str(value)
+            #     # elif isinstance(sv, genpy.message.get_message_class(slot_type)):
+            #     #     return genpy.message.get_message_class(slot_type)()
+            #     else:
+            #         return slot_value
+            # elif not slot_value and slot_type == 'std_msgs/Empty':  # special empty case
+            #     return []  # or None ?
+            # else:
+            #     raise TypeError("value '{slot_value}' is not of type {slot_type}".format(**locals()))
 
-            super(msg_mod, self).__init__(*args, **kwds)
-            # message fields cannot be None, assign default values for those that are
-            if 'data' in self.__slots__ and self.data is None:
-                self.data = []
-        else:
-            if 'data' in self.__slots__:
-                self.data = []
+            if isinstance(slot_value, six.string_types):
+                slot_value = str(slot_value)  # forcing str type (converting from unicode if needed)
+
+            # Detecting possible type problems
+            if slot_type in ros_python_type_mapping and not isinstance(slot_value, ros_python_type_mapping.get(slot_type)):
+                # simple field type
+                raise TypeError("value '{slot_value}' is not of type {slot_type}".format(**locals()))
+
+            elif isinstance(slot_value, list) and not isinstance(slot_value, six.string_types):
+                # array field type
+                if len(slot_value) > 0:
+                    # we only take the first element (this is an optional element expressed as array)
+                    # and we validate it
+                    slot_value = validate_type(slot_value[0], slot_type[:-2])
+
+            elif slot_type not in ros_python_type_mapping:
+                # custom field type
+                try:
+                    msg_class = genpy.message.get_message_class(slot_type)
+                except:
+                    raise Exception("IMPLEMENT THAT !") # TODO : implement clear error message about custom message not found
+                if not isinstance(slot_value, msg_class):
+                    raise TypeError("value '{slot_value}' is not of type {slot_type[:-2]}".format(**locals()))
+
+            return slot_value
+
+        def get_default_val_from_type(slot_type):
+
+            if slot_type in ros_python_default_mapping:
+                # simple type (check genpy.base.is_simple())
+                return ros_python_default_mapping.get(slot_type)
+            elif slot_type.endswith('[]'):
+                # array type (recurse)
+                return get_default_val_from_type(slot_type[:-2])
+            elif isinstance(sv, genpy.message.get_message_class(slot_type)):
+                # custom type (call __init__())
+                return genpy.message.get_message_class(slot_type)()
+            else:
+                raise TypeError("default value for type {slot_type} is unknown".format(**locals()))
+
+        # Validating arg type (we should be more strict than ROS.)
+        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+
+            if s in opt_slot_list and st.endswith('[]'):
+                if kwds and s in kwds:
+                    if not isinstance(kwds.get(s), list):  # make it a list if needed
+                        kwds[s] = [kwds.get(s)]
+                    try:
+                        sv = validate_type(kwds.get(s), st)
+                    except TypeError as te:
+                        sv = kwds.get(s)
+                        raise AttributeError("field {s} has value {sv} which is not of type {st}".format(**locals()))
+                else:
+                    kwds[s] = []
+
+            else:  # not an optional field
+                if kwds:
+                    kwds[s] = validate_type(kwds.get(s), st)
+                # else it will be set to None by parent class (according to original ROS message behavior)
+
+        # By now the kwds is filled up with values
+        # the parent init will do the usual ROS message setup.
+        super(msg_mod, self).__init__(*args, **kwds)
+
+        # We follow the usual ROS generated message behavior and assign default values
+        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+            if getattr(self, s) is None:
+                setattr(self, s, get_default_val_from_type(s, st))
+
+
 
     # SEEMS WE CANNOT DO THAT => keep everything in an array. makes the null [] case less surprising anyway...
     # def get_punch(self, key):

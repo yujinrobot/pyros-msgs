@@ -51,6 +51,12 @@ def test_init_default():
     assert msg.data == []
 
 
+def test_init_except():
+    with nose.tools.assert_raises(AttributeError) as cm:
+        test_opt_bool_as_array(42)
+    assert cm.exception.message == "field data has value [42] which is not of type bool[]"
+
+
 # Just in case we run this directly
 if __name__ == '__main__':
     nose.runmodule(__name__)
