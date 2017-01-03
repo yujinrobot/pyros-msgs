@@ -18,6 +18,7 @@ def duck_punch(msg_mod, opt_slot_list):
     """
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
+
         if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
             # so we can change it to kwarg to be more accepting (and more robust for changes)
             kwds.update(zip([s for s in self.__slots__], args))
@@ -56,19 +57,20 @@ def duck_punch(msg_mod, opt_slot_list):
                 # simple field type
                 raise TypeError("value '{slot_value}' is not of type {slot_type}".format(**locals()))
 
-            elif isinstance(slot_value, list) and not isinstance(slot_value, six.string_types):
-                # array field type
-                if len(slot_value) > 0:
-                    # we only take the first element (this is an optional element expressed as array)
-                    # and we validate it
-                    slot_value = validate_type(slot_value[0], slot_type[:-2])
+            elif slot_type.endswith('[]'):
+                if isinstance(slot_value, list):
+                    # we validate each element (a field can be optional or can also be a normal list)
+                    slot_value = [validate_type(s, slot_type[:-2]) for s in slot_value]
+                    # else slot_value is the empty list (valid optional field)
+                else:
+                    slot_value = validate_type(slot_value, slot_type[:-2])
 
-            elif slot_type not in ros_python_type_mapping:
+            elif slot_type not in ros_python_type_mapping:  # other cases should all be valid cases
                 # custom field type
                 try:
                     msg_class = genpy.message.get_message_class(slot_type)
                 except:
-                    raise Exception("IMPLEMENT THAT !") # TODO : implement clear error message about custom message not found
+                    raise TypeError("message class for '{slot_type}' not found".format(**locals()))
                 if not isinstance(slot_value, msg_class):
                     raise TypeError("value '{slot_value}' is not of type {slot_type[:-2]}".format(**locals()))
 
@@ -82,17 +84,15 @@ def duck_punch(msg_mod, opt_slot_list):
             elif slot_type.endswith('[]'):
                 # array type (recurse)
                 return get_default_val_from_type(slot_type[:-2])
-            elif isinstance(sv, genpy.message.get_message_class(slot_type)):
-                # custom type (call __init__())
-                return genpy.message.get_message_class(slot_type)()
             else:
-                raise TypeError("default value for type {slot_type} is unknown".format(**locals()))
+                # attempt custom type (call __init__())
+                return genpy.message.get_message_class(slot_type)()
 
         # Validating arg type (we should be more strict than ROS.)
         for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
 
-            if s in opt_slot_list and st.endswith('[]'):
-                if kwds and s in kwds:
+            if s in self._opt_slots and st.endswith('[]'):
+                if kwds and kwds.get(s) is not None:
                     if not isinstance(kwds.get(s), list):  # make it a list if needed
                         kwds[s] = [kwds.get(s)]
                     try:
@@ -104,7 +104,7 @@ def duck_punch(msg_mod, opt_slot_list):
                     kwds[s] = []
 
             else:  # not an optional field
-                if kwds:
+                if kwds and s in kwds:
                     kwds[s] = validate_type(kwds.get(s), st)
                 # else it will be set to None by parent class (according to original ROS message behavior)
 
@@ -115,24 +115,24 @@ def duck_punch(msg_mod, opt_slot_list):
         # We follow the usual ROS generated message behavior and assign default values
         for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
             if getattr(self, s) is None:
-                setattr(self, s, get_default_val_from_type(s, st))
+                setattr(self, s, get_default_val_from_type(st))
 
 
 
     # SEEMS WE CANNOT DO THAT => keep everything in an array. makes the null [] case less surprising anyway...
     # def get_punch(self, key):
     #     __doc__ = msg_mod.__get__.__doc__
-    #     if key in opt_slot_list:
+    #     if key in self._opt_slots:
     #         return getattr(self, key)[0]
     #
     # def set_punch(self, key, value):
     #     __doc__ = msg_mod.__set__.__doc__
-    #     if key in opt_slot_list:
+    #     if key in self._opt_slots:
     #         getattr(self, key)[0] = value
     #
     # def delete_punch(self, key):
     #     __doc__ = msg_mod.__delete__.__doc__
-    #     if key in opt_slot_list:
+    #     if key in self._opt_slots:
     #         setattr(self, key, [])
 
     # duck punching into genpy generated message classes.
@@ -140,6 +140,10 @@ def duck_punch(msg_mod, opt_slot_list):
     # msg_mod.__get__ = get_punch
     # msg_mod.__set__ = set_punch
     # msg_mod.__delete__ = delete_punch
+
+    # Registering the list of optional field (required by pyros_schemas)
+    msg_mod._opt_slots = opt_slot_list
+
 #
 # default data values extracted from genpy.generator:default_value()
 #
