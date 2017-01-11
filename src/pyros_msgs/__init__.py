@@ -1,47 +1,43 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-# Getting all msgs first (since our __file__ is set to ros generated __init__)
-from .msg import *
+import sys
+import six
 
-# duck punching via module import relay
-from ._punch import (
-    opt_empty,
+# Utility functions
 
-    opt_bool,
-    opt_int8, opt_int16, opt_int32, opt_int64,
-    opt_uint8, opt_uint16, opt_uint32, opt_uint64,
-    opt_float32, opt_float64,
-    opt_string,
+# Ref : http://wiki.ros.org/msg
+if sys.version_info >= (3, 0):
+    ros_python_type_mapping = {
+        'bool': bool,
+        'int8': int, 'int16': int, 'int32': int, 'int64': int,
+        'uint8': int, 'uint16': int, 'uint32': int, 'uint64': int,
+        'float32': float, 'float64': float,
+        'string': str,  # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
+        #'string': RosTextString,  # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
+        # Time ???
+    }
+else:  # 2.7
+    ros_python_type_mapping = {
+        'bool': bool,
+        'int8': int, 'int16': int, 'int32': int, 'int64': long,
+        'uint8': int, 'uint16': int, 'uint32': int, 'uint64': long,
+        'float32': float, 'float64': float,
+        'string': str,  # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
+        #'string': RosTextString,  # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
+        # Time ???
+    }
 
-    opt_time,
-    opt_duration,
-    opt_header,
-)
-
-# fixing out __file__ for proper python behavior
-
-# Getting actual filepath (not ros generated init)
-# detecting and fixing ROS generated __init__.py behavior when importing this package
-# TMP : not working yet...
-# import pyros_utils
-#
-# ros_exec = pyros_utils.get_ros_executed_file()
-# if ros_exec:
-#     __file__ = ros_exec
-
+ros_python_default_mapping = {
+    'bool': False,
+    'int8': 0, 'uint8': 0, 'int16': 0, 'uint16': 0, 'int32': 0, 'uint32': 0, 'int64': 0, 'uint64': 0,
+    'float32': 0.0, 'float64': 0.0,
+    'string': '',
+    'time': 0,
+    'duration': 0,
+}
 
 __all__ = [
-    'opt_empty',
-
-    'opt_bool',
-    'opt_int8', 'opt_int16', 'opt_int32', 'opt_int64',
-    'opt_uint8', 'opt_uint16', 'opt_uint32', 'opt_uint64',
-    'opt_float32', 'opt_float64',
-    'opt_string',
-
-    'opt_time',
-    'opt_duration',
-    'opt_header',
+    'ros_python_type_mapping',
+    'ros_python_default_mapping'
 ]
-

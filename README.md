@@ -1,5 +1,10 @@
-# pyros-msgs
-ROS messages and service definitions for use with pyros
+# Pyros-msgs
 
-WARNING : This repository will likely soon be dropped.
-It seems not needed any longer.
+ROS Package enabling ROS communication for other Pyros multiprocess systems.
+
+## Features
+ 
+### ROS
+- optional field as a ROS array
+- optional field as a specific message type
+
