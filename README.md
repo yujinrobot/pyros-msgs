@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/asmodehn/pyros-msgs.svg?branch=master)](https://travis-ci.org/asmodehn/pyros-msgs)
+
 # Pyros-msgs
 
 ROS Package enabling ROS communication for other Pyros multiprocess systems.
