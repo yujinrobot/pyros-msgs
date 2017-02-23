@@ -10,20 +10,11 @@ project(pyros_msgs)
 ##############################################################################
 
 find_package(catkin REQUIRED COMPONENTS
-    roslint
+    catkin_pip
     std_msgs
     message_generation
     message_runtime
 )
-
-
-catkin_python_setup()
-
-
-# Lint Python modules
-file(GLOB_RECURSE ${PROJECT_NAME}_PY_SRCS
-     RELATIVE ${PROJECT_SOURCE_DIR} src/pyros_msgs/*.py)
-roslint_python(${${PROJECT_NAME}_PY_SRCS})
 
 
 #####
@@ -50,12 +41,17 @@ add_message_files(
     opt_time.msg
     opt_duration.msg
     opt_header.msg
+
+    # For testing only
+    test_opt_bool_as_nested.msg
 )
 
 add_message_files(
   DIRECTORY
     msg/opt_as_array
   FILES
+
+    # For testing only
     test_opt_empty_as_array.msg
     test_opt_bool_as_array.msg
     test_opt_int8_as_array.msg
@@ -82,14 +78,14 @@ generate_messages(DEPENDENCIES std_msgs)
 # Catkin
 ##############################################################################
 
-catkin_package()
+catkin_pip_package(pyros_msgs)
 
 #########
 # Tests
 #######
 
 if (CATKIN_ENABLE_TESTING)
-  catkin_add_nosetests(tests)
+  catkin_add_pytests(tests)
 endif()
 
 

@@ -1,89 +1,66 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-
-
-
 import collections
 
-from pyros_msgs.msg import (
-    # no slot
-    # None
-
-    # data slot
-    opt_empty,
-
-    opt_bool,
-    opt_int8, opt_int16, opt_int32, opt_int64,
-    opt_uint8, opt_uint16, opt_uint32, opt_uint64,
-    opt_float32, opt_float64,
-    opt_string,
-
-    opt_time,
-    opt_duration,
-    opt_header,
-
-    # multiple slots
-    # None
+import genpy
+import six
+import std_msgs.msg
+from pyros_msgs.common import (
+    ros_opt_as_nested_type_str_mapping,
+    ros_opt_as_nested_type_constructor_mapping,
+    ros_opt_as_nested_type_default_mapping,
+    validate_type,
+    get_default_val_from_type,
 )
 
-import genpy
-import std_msgs.msg
 
-
-def duck_punch(msg_mod, default_data_value=None):
+def duck_punch(msg_mod, opt_slot_list):
+    """
+    Duck punch / monkey patch msg_mod, by declaring slots in opt_slot_list as optional slots
+    :param msg_mod:
+    :param opt_slot_list:
+    :return:
+    """
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
-        # excepting when passing initialized_. it is meant to be an internal field.
-        if 'initialized_' in kwds.keys():
-            raise AttributeError("The field 'initialized_' is an internal field of {0} and should not be set by the user.".format(msg_mod._type))
+
         if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
             # so we can change it to kwarg to be more accepting (and more robust for changes)
-            kwds.update(zip([s for s in self.__slots__ if s != 'initialized_'], args))
+            kwds.update(zip([s for s in self.__slots__], args))
+            args = ()
 
-        if kwds:
-            # special case for string type(to support unicode kwds)
-            for s, st in zip(self.__slots__, self._slot_types):
-                if st == 'string':
-                    kwds[s] = str(kwds.get(s, ""))
+        # Validating arg type (we should be more strict than ROS.)
+        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
 
-            # ROS messages accept either args or kwargs, not both
-            super(msg_mod, self).__init__(**kwds)
-            # initialized value depends on all field assigned
-            if 'data' in self.__slots__ and self.data is None:
-                self.data = default_data_value
-                self.initialized_ = False
-            else:
-                self.initialized_ = True
-        else:
-            self.initialized_ = False
-            if 'data' in self.__slots__:
-                self.data = default_data_value
+            if s in self._opt_slots and st.endswith('[]'):
+                if kwds and kwds.get(s) is not None:
+                    if not isinstance(kwds.get(s), list):  # make it a list if needed
+                        kwds[s] = [kwds.get(s)]
+                    try:
+                        sv = validate_type(kwds.get(s), st, ros_opt_as_nested_type_constructor_mapping)
+                    except TypeError as te:
+                        sv = kwds.get(s)
+                        raise AttributeError("field {s} has value {sv} which is not of type {st}".format(**locals()))
+                else:
+                    kwds[s] = []
 
-    # duck punching into genpy generated message classes, to set initialized_ field properly
+            else:  # not an optional field
+                if kwds and s in kwds:
+                    kwds[s] = validate_type(kwds.get(s), st, ros_opt_as_nested_type_constructor_mapping)
+                # else it will be set to None by parent class (according to original ROS message behavior)
+
+        # By now the kwds is filled up with values
+        # the parent init will do the usual ROS message setup.
+        super(msg_mod, self).__init__(*args, **kwds)
+
+        # We follow the usual ROS generated message behavior and assign default values
+        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+            if getattr(self, s) is None:
+                setattr(self, s, get_default_val_from_type(st))
+
+    # duck punching into genpy generated message classes.
     msg_mod.__init__ = init_punch
 
-
-#
-# default data values extracted from genpy.generator:default_value()
-#
-
-for msg_int_mod in [
-    opt_int8, opt_int16, opt_int32, opt_int64,
-    opt_uint8, opt_uint16, opt_uint32, opt_uint64,
-]:
-    duck_punch(msg_int_mod, 0)
-
-for msg_float_mod in [
-    opt_float32, opt_float64,
-]:
-    duck_punch(msg_float_mod, 0.)
-
-duck_punch(opt_string, '')
-duck_punch(opt_bool, False)
-duck_punch(opt_empty)  # default value should be unused here
-
-duck_punch(opt_time, genpy.Time())
-duck_punch(opt_duration, genpy.Duration())
-duck_punch(opt_header, std_msgs.msg.Header())
-
+    # Registering the list of optional field (required by pyros_schemas)
+    msg_mod._opt_slots = opt_slot_list

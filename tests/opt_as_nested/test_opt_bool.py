@@ -1,11 +1,14 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
+
+# TODO : property based testing. check hypothesis
+# TODO : check all types
 
 import sys
 
 try:
     import genpy
-    from pyros_msgs.opt_as_nested import opt_bool  # This will duck punch the generated message type.
+    import pyros_msgs
+    from pyros_msgs.opt_as_nested import opt_bool, test_opt_bool_as_nested  # This will duck punch the generated message type.
 
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
@@ -13,31 +16,45 @@ except ImportError:
     # We rely on default configuration to point us ot the proper distro
     pyros_setup.configurable_import().configure().activate()
     import genpy
-    from pyros_msgs.opt_as_nested import opt_bool  # This will duck punch the generated message type.
+    import pyros_msgs.opt_as_nested  # This will duck punch the standard message type initialization code.
+    from pyros_msgs.msg import test_opt_bool_as_nested  # a message type just for testing
 
 import nose
 
+# patching  # TODO : move that into the type, we dont need to kow the field name here...
+pyros_msgs.opt_as_nested.duck_punch(test_opt_bool_as_nested, ['data'])
+
 
 def test_init_data():
-    msg = opt_bool(data=True)
-    assert msg.initialized_ is True
-    assert msg.data is True
+    # Same with an actual message containing this field
+    optmsg = test_opt_bool_as_nested(data=True)
+    assert optmsg.data is True
 
-    msg = opt_bool(data=False)
-    assert msg.initialized_ is True
-    assert msg.data is False
+    optmsg = test_opt_bool_as_nested(data=False)
+    assert optmsg.data is False
+
+
+def test_init_raw():
+    # Same with an actual message containing this field
+    optmsg = test_opt_bool_as_nested(True)
+    assert optmsg.data is True
+
+    optmsg = test_opt_bool_as_nested(False)
+    assert optmsg.data is False
 
 
 def test_init_default():
-    msg = opt_bool()
-    assert msg.initialized_ is False
-    assert msg.data is False  # default value from genpy
+    # Same with an actual message containing this field
+    optmsg = test_opt_bool_as_nested()
+    assert optmsg.data is None
 
 
-def test_force_init_excepts():
+def test_init_excepts():
     with nose.tools.assert_raises(AttributeError) as cm:
-        opt_bool(initialized_=True)
-    assert cm.exception.message == "The field 'initialized_' is an internal field of pyros_msgs/opt_bool and should not be set by the user."
+        opt_bool(data=42)
+    assert isinstance(cm.exception, AttributeError)
+    assert cm.exception.message == "The field 'data' has value 42 which is not of type bool"
+
 
 # Just in case we run this directly
 if __name__ == '__main__':
