@@ -4,7 +4,7 @@ from __future__ import print_function
 try:
     import genpy
     from pyros_msgs.opt_as_nested import opt_int64
-    from pyros_msgs.common import ros_python_default_mapping  # just for testing
+    from pyros_msgs.common import get_accepted_from_type, get_generated_from_type, get_default_val_from_type  # just for testing
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
@@ -12,7 +12,7 @@ except ImportError:
     pyros_setup.configurable_import().configure().activate()
     import genpy
     from pyros_msgs.opt_as_nested import opt_int64
-    from pyros_msgs.common import ros_python_default_mapping  # just for testing
+    from pyros_msgs.common import get_accepted_from_type, get_generated_from_type, get_default_val_from_type  # just for testing
 
 import nose
 
@@ -26,7 +26,7 @@ def test_init_data_internal():
 def test_init_default_internal():
     msg = opt_int64()
     assert msg.initialized_ is False
-    assert msg.data == ros_python_default_mapping['int64']
+    assert msg.data == get_default_val_from_type('int64')
 
 
 def test_reset_default_internal():
@@ -37,7 +37,7 @@ def test_reset_default_internal():
     opt_int64.reset_default()
     msg = opt_int64()
     assert msg.initialized_ is False
-    assert msg.data == ros_python_default_mapping['int64']
+    assert msg.data == get_default_val_from_type('int64')
 
 
 def test_force_init_excepts_internal():

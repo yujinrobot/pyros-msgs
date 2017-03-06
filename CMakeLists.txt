@@ -25,7 +25,6 @@ add_message_files(
   DIRECTORY
     msg/opt_as_nested
   FILES
-    opt_empty.msg
     opt_bool.msg
     opt_int8.msg
     opt_int16.msg

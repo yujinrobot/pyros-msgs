@@ -7,41 +7,37 @@ you are encourages to run doctest on it :
 py.test --pyargs pyros_msgs.common --doctest-modules
 """
 
-from .mappings import (
-    six_long,
+# compat
+
+import six
+# to get long for py2 and int for py3
+six_long = six.integer_types[-1]
+
+from .typeschemas import (
+    TypeSchemaException,
     maybe_list,
     maybe_tuple,
+    accept,
+    sanitize,
+    typeschema_check,
+    typeschema_default,
+)
 
-    # use functions instead
-    # ros_python_basic_field_type_mapping,
-    # ros_python_default_mapping,
-    get_accepted_from_type,
-    get_generated_from_type,
-    get_default_val_from_type,
+from .ros_mappings import (
+    typeschema_from_rostype
+)
 
-    ros_opt_as_array_type_str_mapping,
-    ros_opt_as_array_type_constructor_mapping,
-    ros_opt_as_array_type_default_mapping,
+from .ros_opt_mappings import (
+    get_accepted_typeschema_from_opt_array_type,
+    get_generated_typeschema_from_opt_array_type,
+    get_default_val_from_opt_array_type,
 
-    ros_opt_as_nested_type_str_mapping,
-    ros_opt_as_nested_type_constructor_mapping,
-    ros_opt_as_nested_type_default_mapping,
-
+    get_accepted_typeschema_from_opt_nested_type,
+    get_generated_typeschema_from_opt_nested_type,
+    get_default_val_from_opt_nested_type,
 )
 
 from .validation import validate_type
 
 __all__ = [
-    'ros_python_basic_field_type_mapping',
-    'ros_python_default_mapping',
-
-    'ros_opt_as_array_type_str_mapping',
-    'ros_opt_as_array_type_constructor_mapping',
-    'ros_opt_as_array_type_default_mapping',
-
-    'ros_opt_as_nested_type_str_mapping',
-    'ros_opt_as_nested_type_constructor_mapping',
-    'ros_opt_as_nested_type_default_mapping',
-
-    'validate_type',
 ]

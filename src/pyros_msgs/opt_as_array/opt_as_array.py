@@ -7,11 +7,10 @@ import genpy
 import six
 import std_msgs.msg
 from pyros_msgs.common import (
-    ros_opt_as_array_type_str_mapping,
-    ros_opt_as_array_type_constructor_mapping,
-    ros_opt_as_array_type_default_mapping,
-    validate_type,
-    get_default_val_from_type,
+    TypeSchemaException,
+    typeschema_from_rostype,
+    typeschema_check,
+    typeschema_default,
 )
 
 
@@ -30,34 +29,31 @@ def duck_punch(msg_mod, opt_slot_list):
             kwds.update(zip([s for s in self.__slots__], args))
             args = ()
 
-        # Validating arg type (we should be more strict than ROS.)
-        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+        # We build our own type schema here from our slots
+        # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
+        ts = {
+            slot: typeschema_from_rostype(slot_type)
+            for slot, slot_type in zip(self.__slots__, self._slot_types)
+        }
 
-            if s in self._opt_slots and st.endswith('[]'):
-                if kwds and kwds.get(s) is not None:
-                    if not isinstance(kwds.get(s), list):  # make it a list if needed
-                        kwds[s] = [kwds.get(s)]
-                    try:
-                        sv = validate_type(kwds.get(s), st, ros_opt_as_array_type_constructor_mapping)
-                    except TypeError as te:
-                        sv = kwds.get(s)
-                        raise AttributeError("field {s} has value {sv} which is not of type {st}".format(**locals()))
-                else:
-                    kwds[s] = []
-
-            else:  # not an optional field
-                if kwds and s in kwds:
-                    kwds[s] = validate_type(kwds.get(s), st, ros_opt_as_array_type_constructor_mapping)
-                # else it will be set to None by parent class (according to original ROS message behavior)
+        # We assign slots one by one after verifying and sanitizing the type
+        for s, st in ts.items():
+            # check all slots values passed in kwds.
+            # We assign default values here to make sure everything is valid
+            sval = kwds.get(s, typeschema_default(st))
+            try:
+                kwds[s] = typeschema_check(st, sval)
+            except TypeSchemaException as tse:
+                # TODO : improve the exception message
+                # we convert back to a standard python exception
+                raise AttributeError("{sval} does not match its accepted type schema for '{s}' : {st[1]}".format(**locals()))
 
         # By now the kwds is filled up with values
         # the parent init will do the usual ROS message setup.
         super(msg_mod, self).__init__(*args, **kwds)
 
-        # We follow the usual ROS generated message behavior and assign default values
-        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
-            if getattr(self, s) is None:
-                setattr(self, s, get_default_val_from_type(st))
+        # Note here no slot should be set to None.
+        # Default values have been forcibly assigned when required.
 
     # duck punching into genpy generated message classes.
     msg_mod.__init__ = init_punch

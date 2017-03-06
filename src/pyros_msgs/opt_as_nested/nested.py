@@ -21,7 +21,7 @@ from pyros_msgs.msg import (
     # None
 )
 
-from pyros_msgs.common import ros_opt_as_nested_type_default_mapping
+from pyros_msgs.common import get_default_val_from_opt_nested_type
 
 import genpy
 import std_msgs.msg
@@ -60,10 +60,10 @@ def duck_punch(msg_mod):
     msg_mod.__init__ = init_punch
 
     # adding settable default value behavior (doesnt matter for empty type though)
-    msg_mod._default_value = ros_opt_as_nested_type_default_mapping[msg_mod._type]
+    msg_mod._default_value = get_default_val_from_opt_nested_type(msg_mod._type)
 
     def reset_default(cls, new_default_value=None):
-        cls._default_value = new_default_value or ros_opt_as_nested_type_default_mapping[msg_mod._type]
+        cls._default_value = new_default_value or get_default_val_from_opt_nested_type(msg_mod._type)
 
     msg_mod.reset_default = classmethod(reset_default)
 

@@ -7,11 +7,12 @@ import genpy
 import six
 import std_msgs.msg
 from pyros_msgs.common import (
-    ros_opt_as_nested_type_str_mapping,
-    ros_opt_as_nested_type_constructor_mapping,
-    ros_opt_as_nested_type_default_mapping,
     validate_type,
+    get_accepted_typeschema_from_type,
+    get_generated_typeschema_from_type,
     get_default_val_from_type,
+
+    get_default_val_from_opt_nested_type
 )
 
 
@@ -33,21 +34,21 @@ def duck_punch(msg_mod, opt_slot_list):
         # Validating arg type (we should be more strict than ROS.)
         for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
 
-            if s in self._opt_slots and st.endswith('[]'):
+            if st.startswith('pyros_msgs/opt_'):
                 if kwds and kwds.get(s) is not None:
-                    if not isinstance(kwds.get(s), list):  # make it a list if needed
-                        kwds[s] = [kwds.get(s)]
                     try:
-                        sv = validate_type(kwds.get(s), st, ros_opt_as_nested_type_constructor_mapping)
+                        # This will convert the type if necessary
+                        sv = validate_type(kwds.get(s), st)
                     except TypeError as te:
                         sv = kwds.get(s)
-                        raise AttributeError("field {s} has value {sv} which is not of type {st}".format(**locals()))
+                        raise AttributeError("field {s} has value {sv} which is not of expected type {st}".format(**locals()))
                 else:
-                    kwds[s] = []
+                    # Here we build the default optional type (uninitialized)
+                    kwds[s] = get_default_val_from_opt_nested_type(st)
 
-            else:  # not an optional field
+            else:  # not an optional field, but we still need to validate the type
                 if kwds and s in kwds:
-                    kwds[s] = validate_type(kwds.get(s), st, ros_opt_as_nested_type_constructor_mapping)
+                    kwds[s] = validate_type(kwds.get(s), st)
                 # else it will be set to None by parent class (according to original ROS message behavior)
 
         # By now the kwds is filled up with values
