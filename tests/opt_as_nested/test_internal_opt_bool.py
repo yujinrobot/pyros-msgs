@@ -44,14 +44,21 @@ def test_init_raw_internal():
 def test_init_default_internal():
     msg = pyros_msgs.opt_as_nested.opt_bool()
     assert msg.initialized_ is False
-    assert msg.data is False  # default value from genpy
+    assert msg.data is False  # default value
 
 
-def test_init_excepts_internal():
+def test_init_excepts_internal_initialized():
     with nose.tools.assert_raises(AttributeError) as cm:
         pyros_msgs.opt_as_nested.opt_bool(initialized_=True)
     assert isinstance(cm.exception, AttributeError)
     assert cm.exception.message == "The field 'initialized_' is an internal field of pyros_msgs/opt_bool and should not be set by the user."
+
+
+def test_init_excepts_internal_data():
+    with nose.tools.assert_raises(AttributeError) as cm:
+        pyros_msgs.opt_as_nested.opt_bool(data=42)
+    assert isinstance(cm.exception, AttributeError)
+    assert cm.exception.message == "42 does not match the accepted type schema for 'data' : <type 'bool'>"
 
 
 # Just in case we run this directly

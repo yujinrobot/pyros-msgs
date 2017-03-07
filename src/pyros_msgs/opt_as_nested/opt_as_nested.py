@@ -7,12 +7,10 @@ import genpy
 import six
 import std_msgs.msg
 from pyros_msgs.common import (
-    validate_type,
-    get_accepted_typeschema_from_type,
-    get_generated_typeschema_from_type,
-    get_default_val_from_type,
-
-    get_default_val_from_opt_nested_type
+    six_long,
+    TypeSchemaException,
+    typeschema_from_rosfield_type,
+    TypeSchema
 )
 
 
@@ -31,34 +29,38 @@ def duck_punch(msg_mod, opt_slot_list):
             kwds.update(zip([s for s in self.__slots__], args))
             args = ()
 
-        # Validating arg type (we should be more strict than ROS.)
-        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+        # We build our own type schema here from our slots
+        # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
+        slotsdict = {
+            s: typeschema_from_rosfield_type(srt)
+            for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
+            }
 
-            if st.startswith('pyros_msgs/opt_'):
-                if kwds and kwds.get(s) is not None:
-                    try:
-                        # This will convert the type if necessary
-                        sv = validate_type(kwds.get(s), st)
-                    except TypeError as te:
-                        sv = kwds.get(s)
-                        raise AttributeError("field {s} has value {sv} which is not of expected type {st}".format(**locals()))
-                else:
-                    # Here we build the default optional type (uninitialized)
-                    kwds[s] = get_default_val_from_opt_nested_type(st)
+        # TODO : use accepted typeschema to filter args
 
-            else:  # not an optional field, but we still need to validate the type
-                if kwds and s in kwds:
-                    kwds[s] = validate_type(kwds.get(s), st)
-                # else it will be set to None by parent class (according to original ROS message behavior)
+        # TODO : use type schema method to build this instance
+
+        # We assign slots one by one after verifying and sanitizing the type
+        for s, st in slotsdict.items():
+            # check all slots values passed in kwds.
+            # We DO NOT assign default values here (nested type should manage default values for fields)
+            sval = kwds.get(s)
+            try:
+                if sval is not None:  # we allow any field to be None without typecheck
+                    kwds[s] = st(sval)
+            except TypeSchemaException as tse:
+                # TODO : improve the exception message
+                # we convert back to a standard python exception
+                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
 
         # By now the kwds is filled up with values
         # the parent init will do the usual ROS message setup.
         super(msg_mod, self).__init__(*args, **kwds)
 
         # We follow the usual ROS generated message behavior and assign default values
-        for s, st in [(_slot, _slot_type) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+        for s, st in [(_slot, typeschema_from_rosfield_type(_slot_type)) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
             if getattr(self, s) is None:
-                setattr(self, s, get_default_val_from_type(st))
+                setattr(self, s, st.default())
 
     # duck punching into genpy generated message classes.
     msg_mod.__init__ = init_punch

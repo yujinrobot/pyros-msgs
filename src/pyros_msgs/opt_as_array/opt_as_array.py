@@ -1,16 +1,9 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
-import collections
-
-import genpy
-import six
-import std_msgs.msg
 from pyros_msgs.common import (
     TypeSchemaException,
-    typeschema_from_rostype,
-    typeschema_check,
-    typeschema_default,
+    typeschema_from_rosfield_type,
+    TypeSchema,
 )
 
 
@@ -31,22 +24,28 @@ def duck_punch(msg_mod, opt_slot_list):
 
         # We build our own type schema here from our slots
         # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
-        ts = {
-            slot: typeschema_from_rostype(slot_type)
-            for slot, slot_type in zip(self.__slots__, self._slot_types)
+        slotsdict = {
+            s: typeschema_from_rosfield_type(srt)
+            for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
         }
 
+        # assert isinstance(rostype, genpy.Message) # TODO : not working ??
+
+        # TODO : use accepted typeschema to filter args
+
+        # TODO : use type schema method to build this instance
+
         # We assign slots one by one after verifying and sanitizing the type
-        for s, st in ts.items():
+        for s, st in slotsdict.items():
             # check all slots values passed in kwds.
             # We assign default values here to make sure everything is valid
-            sval = kwds.get(s, typeschema_default(st))
+            sval = kwds.get(s, st.default())
             try:
-                kwds[s] = typeschema_check(st, sval)
+                kwds[s] = st(sval)  # type checking val
             except TypeSchemaException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
-                raise AttributeError("{sval} does not match its accepted type schema for '{s}' : {st[1]}".format(**locals()))
+                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
 
         # By now the kwds is filled up with values
         # the parent init will do the usual ROS message setup.

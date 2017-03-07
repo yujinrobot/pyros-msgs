@@ -17,14 +17,12 @@ from .typeschemas import (
     TypeSchemaException,
     maybe_list,
     maybe_tuple,
-    accept,
-    sanitize,
-    typeschema_check,
-    typeschema_default,
+    TypeSchema,
 )
 
 from .ros_mappings import (
-    typeschema_from_rostype
+    typeschema_from_rosfield_type,
+    typeschema_from_rosmsg_type
 )
 
 from .ros_opt_mappings import (

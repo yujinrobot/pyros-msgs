@@ -21,10 +21,53 @@ from pyros_msgs.msg import (
     # None
 )
 
-from pyros_msgs.common import get_default_val_from_opt_nested_type
 
-import genpy
-import std_msgs.msg
+try:
+    import genpy
+except ImportError:
+    import pyros_setup
+    pyros_setup.configurable_import().configure().activate()
+    import genpy
+
+from pyros_msgs.common import (
+    TypeSchemaException,
+    typeschema_from_rosmsg_type,
+    typeschema_from_rosfield_type,
+    TypeSchema,
+)
+
+
+from pyros_msgs.common import six, six_long
+import pyros_msgs.common.ros_mappings
+
+
+# We patch our Ros mappings with our optional nested types
+pyros_msgs.common.ros_mappings.rosfield_schematype_mapping.update({
+    # Optional nested field extension (This is handled by the nested modified constructor)
+    'pyros_msgs/opt_bool': TypeSchema(
+        lambda v=None: opt_bool() if v is None else opt_bool(data=v), # if isinstance(v, bool) else v,  # CAREFUL with default value and copying (ref counted) another opt_bool
+        (bool,)
+    ),
+    # 'pyros_msgs/opt_int8': (int, int),
+    # 'pyros_msgs/opt_int16': (int, int),
+    # 'pyros_msgs/opt_int32': (int, int),
+    # 'pyros_msgs/opt_int64': (six_long, (int, six_long)),
+    # 'pyros_msgs/opt_uint8': (int, int),
+    # 'pyros_msgs/opt_uint16': (int, int),
+    # 'pyros_msgs/opt_uint32': (int, int),
+    # 'pyros_msgs/opt_uint64': (six_long, (int, six_long)),
+    # 'pyros_msgs/opt_float32': (float, float),
+    # 'pyros_msgs/opt_float64': (float, float),
+    # # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
+    # 'pyros_msgs/opt_string': (six.binary_type, (six.binary_type, six.text_type)),
+    # # for time and duration we want to extract the slots
+    # # we want genpy to get the list of slots (rospy.Time doesnt have it)
+    # 'pyros_msgs/opt_time': ({'_sanitized': genpy.Time, 'secs': (int, int), 'nsecs': (int, int)}, genpy.Time),
+    # 'pyros_msgs/opt_duration': ({'_sanitized': genpy.Duration, 'secs': (int, int), 'nsecs': (int, int)}, genpy.Duration),
+})
+
+# TODO add a way to generate a value that can be None, or the generated type
+# TODO it means we need to change typeschema from a tuple (generated (1), accepted(n)) to a better structure (namedtuple ?)
 
 
 def duck_punch(msg_mod):
@@ -36,34 +79,46 @@ def duck_punch(msg_mod):
         if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
             # so we can change it to kwarg to be more accepting (and more robust for changes)
             kwds.update(zip([s for s in self.__slots__ if s != 'initialized_'], args))
+            args = ()
 
-        if kwds:
-            # special case for string type(to support unicode kwds)
-            for s, st in zip(self.__slots__, self._slot_types):
-                if st == 'string':
-                    kwds[s] = str(kwds.get(s, ""))
+        kwds['initialized_'] = True if 'data' in kwds else False
+        # TODO : use typeschemas predicate to link initialized_ value and data value
 
-            # ROS messages accept either args or kwargs, not both
-            super(msg_mod, self).__init__(**kwds)
-            # initialized value depends on all field assigned
-            if 'data' in self.__slots__ and self.data is None:
-                self.data = self._default_value
-                self.initialized_ = False
-            else:
-                self.initialized_ = True
-        else:
-            self.initialized_ = False
-            if 'data' in self.__slots__:
-                self.data = self._default_value
+        # We build our own type schema here from our slots
+        # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
+        slotsdict = {
+            s: typeschema_from_rosfield_type(srt)
+            for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
+            }
+
+        # TODO : use accepted typeschema to filter args
+
+        # TODO : use type schema method to build this instance
+
+        # We assign slots one by one after verifying and sanitizing the type
+        for s, st in slotsdict.items():
+            # check all slots values passed in kwds.
+            # We assign default values here to make sure everything is valid
+            sval = kwds.get(s, msg_mod._default_value) if s == 'data' else kwds.get(s, st.default())
+            try:
+                kwds[s] = st(sval)
+            except TypeSchemaException as tse:
+                # TODO : improve the exception message
+                # we convert back to a standard python exception
+                raise AttributeError(
+                    "{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
+
+        # ROS messages accept either args or kwargs, not both
+        super(msg_mod, self).__init__(**kwds)
 
     # duck punching into genpy generated message classes, to set initialized_ field properly
     msg_mod.__init__ = init_punch
 
     # adding settable default value behavior (doesnt matter for empty type though)
-    msg_mod._default_value = get_default_val_from_opt_nested_type(msg_mod._type)
+    msg_mod._default_value = typeschema_from_rosfield_type(msg_mod._slot_types[msg_mod.__slots__.index('data')]).default()
 
     def reset_default(cls, new_default_value=None):
-        cls._default_value = new_default_value or get_default_val_from_opt_nested_type(msg_mod._type)
+        cls._default_value = new_default_value or typeschema_from_rosfield_type(msg_mod._slot_types[msg_mod.__slots__.index('data')]).default()
 
     msg_mod.reset_default = classmethod(reset_default)
 
@@ -90,4 +145,3 @@ duck_punch(opt_time)
 duck_punch(opt_duration)
 
 #duck_punch(opt_header, std_msgs.msg.Header())
-
