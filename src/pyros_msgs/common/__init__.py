@@ -17,6 +17,9 @@ from .typeschemas import (
     TypeSchemaException,
     maybe_list,
     maybe_tuple,
+    maybe_set,
+    time_type_factory, time_type_recycler,
+    duration_type_factory, duration_type_recycler,
     TypeSchema,
 )
 
@@ -25,17 +28,6 @@ from .ros_mappings import (
     typeschema_from_rosmsg_type
 )
 
-from .ros_opt_mappings import (
-    get_accepted_typeschema_from_opt_array_type,
-    get_generated_typeschema_from_opt_array_type,
-    get_default_val_from_opt_array_type,
-
-    get_accepted_typeschema_from_opt_nested_type,
-    get_generated_typeschema_from_opt_nested_type,
-    get_default_val_from_opt_nested_type,
-)
-
-from .validation import validate_type
 
 __all__ = [
 ]

@@ -1,6 +1,10 @@
 from __future__ import absolute_import, division, print_function
 
-import six
+
+"""
+This module defines ros mappings and  strategies for testing (covering ros use case only).
+It can be read as a specification of the current package.
+"""
 
 try:
     import genpy
@@ -10,7 +14,16 @@ except ImportError:
     import genpy
 
 
-from pyros_msgs.common import six_long, TypeSchema, maybe_tuple
+import six
+
+from pyros_msgs.common import (
+    six_long,
+    TypeSchema,
+    maybe_tuple,
+    maybe_set,
+    time_type_factory, time_type_recycler,
+    duration_type_factory, duration_type_recycler,
+)
 
 
 # Ref : http://wiki.ros.org/msg
@@ -20,19 +33,19 @@ rosfield_schematype_mapping = {
     'int8': TypeSchema(int, int),
     'int16': TypeSchema(int, int),
     'int32': TypeSchema(int, int),
-    'int64': TypeSchema(six_long, (int, six_long)),
+    'int64': TypeSchema(six_long, {int, six_long}),
     'uint8': TypeSchema(int, int),
     'uint16': TypeSchema(int, int),
     'uint32': TypeSchema(int, int),
-    'uint64': TypeSchema(six_long, (int, six_long)),
+    'uint64': TypeSchema(six_long, {int, six_long}),
     'float32': TypeSchema(float, float),
     'float64': TypeSchema(float, float),
     # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
-    'string': TypeSchema(six.binary_type, (six.binary_type, six.text_type)),
+    'string': TypeSchema(six.binary_type, {six.binary_type, six.text_type}),
     # for time and duration we want to extract the slots
     # we want genpy to get the list of slots (rospy.Time doesnt have it)
-    'time': TypeSchema(lambda v=genpy.Time(): genpy.Time(secs=v.secs, nsecs=v.nsecs), {'secs': int, 'nsecs': int}),
-    'duration': TypeSchema(lambda v=genpy.Duration(): genpy.Duration(secs=v.secs, nsecs=v.nsecs), {'secs': int, 'nsecs': int}),
+    'time': TypeSchema(time_type_factory, time_type_recycler),
+    'duration': TypeSchema(duration_type_factory, duration_type_recycler),
 
 }
 # TODO : add predicates to be able to differentiate int sizes...

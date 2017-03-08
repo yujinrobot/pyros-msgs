@@ -59,10 +59,71 @@ def maybe_tuple(t):
     """Return tuple of one element if ``t`` is a scalar."""
     return t if t is None or isinstance(t, tuple) else (t,)
 
-#
-# def maybe_dict(t):
-#     """Return dict of one element if ``t`` is a scalar."""
-#     return t if t is None or isinstance(t, dict) else {'data': t}
+
+def maybe_set(t):
+    """Return tuple of one element if ``t`` is a scalar."""
+    return t if t is None or isinstance(t, set) else {t}
+
+
+time_type_factory = lambda v=genpy.Time(): genpy.Time(secs=v.secs, nsecs=v.nsecs)
+duration_type_factory = lambda v=genpy.Duration(): genpy.Duration(secs=v.secs, nsecs=v.nsecs)
+
+time_type_recycler = {'secs': int, 'nsecs': int}
+duration_type_recycler = {'secs': int, 'nsecs': int}
+
+
+import hypothesis.strategies as st
+# Defining a strategy for our typeschemas.
+# This can also be understood as a spec of our TypeSchemas to map to ROS message types
+# IE : these are the rules to build a typeschema
+
+sanitized_fields_type_factories = [
+    (bool, st.booleans()),  # ROS bool field
+    (int, st.integers()),  # ROS int8, int16, int32, uint8, uint16, uint32
+    (six_long, st.integers()),  # ROS int64, uint64
+    (float, st.floats()),  # ROS float32, float 64
+    (six.binary_type, st.binary()),  # ROS string
+    (time_type_factory, st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0))),  # ROS time
+    (duration_type_factory, st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers())),  # ROS duration
+    # arrays
+    ([bool],  st.lists(elements=st.booleans(), min_size=1, max_size=1)),  # ROS bool field
+    ([int], st.lists(elements=st.integers(), min_size=1, max_size=1)),  # ROS int8, int16, int32, uint8, uint16, uint32
+    ([six_long], st.lists(elements=st.integers(), min_size=1, max_size=1)),  # ROS int64, uint64
+    ([float], st.lists(elements=st.floats(), min_size=1, max_size=1)),  # ROS float32, float 64
+    ([six.binary_type], st.lists(elements=st.binary(), min_size=1, max_size=1)),  # ROS string
+    ([time_type_factory], st.lists(elements=st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0)), min_size=1, max_size=1)),  # ROS time
+    ([duration_type_factory], st.lists(elements=st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers()), min_size=1, max_size=1)),  # ROS duration
+]
+
+accepted_fields_type_recyclers = [
+    (bool, st.booleans()),  # ROS bool field
+    (int, st.integers()),  # ROS int8, int16, int32, uint8, uint16, uint32
+    (six_long, st.integers()),  # ROS int64, uint64
+    (float, st.floats()),  # ROS float32, float 64
+    (six.binary_type, st.binary()),  # ROS string
+    (six.text_type, st.text()),  # ROS string (attempting implicit conversion)
+    (time_type_recycler, st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0))),  # ROS time
+    (duration_type_recycler, st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers())),  # ROS duration
+    # arrays
+    ([bool], st.lists(elements=st.booleans(), min_size=1, max_size=1)),  # ROS bool field
+    ([int], st.lists(elements=st.integers(), min_size=1, max_size=1)),  # ROS int8, int16, int32, uint8, uint16, uint32
+    ([six_long], st.lists(elements=st.integers(), min_size=1, max_size=1)),  # ROS int64, uint64
+    ([float], st.lists(elements=st.floats(), min_size=1, max_size=1)),  # ROS float32, float 64
+    ([six.binary_type], st.lists(elements=st.binary(), min_size=1, max_size=1)),  # ROS string
+    ([six.text_type], st.lists(elements=st.text(), min_size=1, max_size=1)),  # ROS string (attempting implicit conversion)
+    ([time_type_recycler], st.lists(elements=st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0)), min_size=1, max_size=1)),  # ROS time
+    ([duration_type_recycler], st.lists(elements=st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers()), min_size=1, max_size=1)),  # ROS duration
+]
+
+# generate a basic strategy for generated types
+basic_sanitized_fields_type_strategy = st.sampled_from([f[0] for f in sanitized_fields_type_factories])
+
+basic_accepted_fields_type_strategy = st.sampled_from([f[0] for f in accepted_fields_type_recyclers])
+
+many_accepted_fields_type_strategy = st.one_of(
+    basic_accepted_fields_type_strategy,
+    st.sets(elements=basic_accepted_fields_type_strategy, min_size=1)
+)
 
 
 class TypeSchemaException(Exception):
@@ -77,10 +138,11 @@ class TypeSchema(object):
         Determining if a value matches any of the type in the accepted_type_tuple
         :param typeschema: the typeschema of accepted types. Can contain :
                             - basic type
-                            - tuple of basic types
-                            - list of one basic type or a tuple
+                            - set of basic types
+                            - list of one basic type or a set
                             - dict of keywords and types.
                         All element of any tuple will be accepted.
+                See accepted strategy for more detailed information
         :param args: multiple values to check if they match the typeschema
         :return: True if all the value are acceptable, False otherwise
 
@@ -103,13 +165,13 @@ class TypeSchema(object):
         True
         >>> TypeSchema.accept([int], [42])
         True
-        >>> TypeSchema.accept([(int,[int])], [[42], 23])
+        >>> TypeSchema.accept([{int,[int]}], [[42], 23])
         True
         >>> TypeSchema.accept([six_long], six_long(42))
         False
         >>> TypeSchema.accept([int], [six_long(42)])
         False
-        >>> TypeSchema.accept([(int, six_long)], [42, six_long(42)])
+        >>> TypeSchema.accept([{int, six_long}], [42, six_long(42)])
         True
 
         Examples with complex types
@@ -162,7 +224,7 @@ class TypeSchema(object):
                             match_all = False
             match = match_all
 
-        elif isinstance(typeschema_accepted, tuple):  # a tuple denotes a set of possible types
+        elif isinstance(typeschema_accepted, set):  # a set denotes a set of possible types
             match_all = True
             for v in values:
                 match_any = False
@@ -195,8 +257,7 @@ class TypeSchema(object):
         Converting a value to match the generated_type
         :param typeschema: the typeschema to sanitize to. Can contain :
                             - basic type
-                            - tuple of basic types
-                            - list of one basic type or a tuple
+                            - list of one basic type
                             - dict of keywords and types.
                         The first element of any tuple will be generated.
         :param value: the value to sanitize
@@ -221,9 +282,9 @@ class TypeSchema(object):
 
         Examples with complex types
         >>> custom_msg = genpy.Time(23.7)
-        >>> TypeSchema.sanitize(lambda v: genpy.Duration(secs=v.secs), custom_msg)
+        >>> TypeSchema.sanitize(duration_type, custom_msg)
         genpy.Duration[23000000000]
-        >>> TypeSchema.sanitize(lambda v: genpy.Duration(secs=v.secs, nsecs=v.nsecs), custom_msg)
+        >>> TypeSchema.sanitize(duration_type, custom_msg)
         genpy.Duration[23699999999]
 
         """
@@ -265,8 +326,8 @@ class TypeSchema(object):
         :param accepted_types: the representation of accepted types.
                     Can contain :
                         - basic type
-                        - tuple of basic types
-                        - list of one basic type or a tuple
+                        - set of basic types
+                        - list of one basic type or a set
                         - dict of keywords and types.
                     All element of any tuple will be accepted.
         """
@@ -296,7 +357,7 @@ class TypeSchema(object):
 
         if isinstance(accepted_types, list):  # a list denotes we also want a list, but we should check inside...
             # we should have only one accepted list element type tuple
-            if len(self.accepted_types) > 1:
+            if len(accepted_types) > 1:
                 raise TypeSchemaException("Error : {typeschema} has more than one element".format(**locals()))
             pass
 
@@ -369,11 +430,11 @@ class TypeSchema(object):
         >>> array_ts.default()
         []
 
-        >>> time_ts = TypeSchema(genpy.Time, genpy.Time)
+        >>> time_ts = TypeSchema(time_type_factory, time_type_recycler)
         >>> time_ts.default()
         genpy.Time[0]
 
-        >>> duration_ts = TypeSchema(genpy.Duration, genpy.Duration)
+        >>> duration_ts = TypeSchema(duration_type_factory, duration_type_recycler)
         >>> duration_ts.default()
         genpy.Duration[0]
 
