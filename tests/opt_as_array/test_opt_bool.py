@@ -22,43 +22,48 @@ pyros_msgs.opt_as_array.duck_punch(test_opt_bool_as_array, ['data'])
 import nose
 
 
-def test_init_rosdata():
-    msg = test_opt_bool_as_array(data=[True])
-    assert msg.data == [True]
-
-    msg = test_opt_bool_as_array(data=[False])
-    assert msg.data == [False]
-
-    msg = test_opt_bool_as_array(data=[])
-    assert msg.data == []
+import hypothesis
+import hypothesis.strategies as st
 
 
-def test_init_data():
-    msg = test_opt_bool_as_array(data=True)
-    assert msg.data == [True]
+@hypothesis.given(hypothesis.strategies.lists(hypothesis.strategies.booleans(), max_size=1))
+def test_init_rosdata(data):
+    """Testing that a proper data is stored as is"""
+    msg = test_opt_bool_as_array(data=data)
+    assert msg.data == data
 
-    msg = test_opt_bool_as_array(data=False)
-    assert msg.data == [False]
+
+@hypothesis.given(hypothesis.strategies.booleans())
+def test_init_data(data):
+    """Testing that an implicitely convertible data is stored as expected"""
+    msg = test_opt_bool_as_array(data=data)
+    assert msg.data == [data]
 
 
-def test_init_raw():
-    msg = test_opt_bool_as_array(True)
-    assert msg.data == [True]
-
-    msg = test_opt_bool_as_array(False)
-    assert msg.data == [False]
+@hypothesis.given(hypothesis.strategies.booleans())
+def test_init_raw(data):
+    """Testing storing of data without specifying the field"""
+    msg = test_opt_bool_as_array(data)
+    assert msg.data == [data]
 
 
 def test_init_default():
+    """Testing default value"""
     msg = test_opt_bool_as_array()
     assert msg.data == []
 
 
-def test_wrong_init_except():
+# TODO : all possible (from ros_mappings) except booleans
+@hypothesis.given(hypothesis.strategies.one_of(
+    hypothesis.strategies.integers(),
+    hypothesis.strategies.floats(),
+))
+def test_wrong_init_except(data):
+    """Testing we except when types do not match"""
     with nose.tools.assert_raises(AttributeError) as cm:
-        test_opt_bool_as_array(42)
+        test_opt_bool_as_array(data)
     assert isinstance(cm.exception, AttributeError)
-    assert cm.exception.message == "42 does not match the accepted type schema for 'data' : (<type 'bool'>, [<type 'bool'>])"
+    assert cm.exception.message == "{data} does not match the accepted type schema for 'data' : (<type 'bool'>, [<type 'bool'>])".format(data)
 
 
 # Just in case we run this directly

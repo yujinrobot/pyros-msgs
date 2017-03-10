@@ -18,106 +18,174 @@ import six
 
 from pyros_msgs.common import (
     six_long,
-    TypeSchema,
+    Accepter, Sanitizer, Array, Any,
+    TypeChecker,
     maybe_tuple,
     maybe_set,
-    time_type_factory, time_type_recycler,
-    duration_type_factory, duration_type_recycler,
 )
 
 
 # Ref : http://wiki.ros.org/msg
-rosfield_schematype_mapping = {
+rosfield_typechecker = {
     # (generated(1), accepted(n)) tuples
-    'bool': TypeSchema(bool, bool),
-    'int8': TypeSchema(int, int),
-    'int16': TypeSchema(int, int),
-    'int32': TypeSchema(int, int),
-    'int64': TypeSchema(six_long, {int, six_long}),
-    'uint8': TypeSchema(int, int),
-    'uint16': TypeSchema(int, int),
-    'uint32': TypeSchema(int, int),
-    'uint64': TypeSchema(six_long, {int, six_long}),
-    'float32': TypeSchema(float, float),
-    'float64': TypeSchema(float, float),
+    'bool': TypeChecker(Sanitizer(bool), Accepter(bool)),
+    'int8': TypeChecker(Sanitizer(int), Accepter(int)),
+    'int16': TypeChecker(Sanitizer(int), Accepter(int)),
+    'int32': TypeChecker(Sanitizer(int), Accepter(int)),
+    'int64': TypeChecker(Sanitizer(six_long), Accepter({int, six_long})),
+    'uint8': TypeChecker(Sanitizer(int), Accepter(int)),
+    'uint16': TypeChecker(Sanitizer(int), Accepter(int)),
+    'uint32': TypeChecker(Sanitizer(int), Accepter(int)),
+    'uint64': TypeChecker(Sanitizer(six_long), Accepter({int, six_long})),
+    'float32': TypeChecker(Sanitizer(float), Accepter(float)),
+    'float64': TypeChecker(Sanitizer(float), Accepter(float)),
     # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
-    'string': TypeSchema(six.binary_type, {six.binary_type, six.text_type}),
+    'string': TypeChecker(Sanitizer(six.binary_type), Any(Accepter(six.binary_type), Accepter(six.text_type))),
     # for time and duration we want to extract the slots
     # we want genpy to get the list of slots (rospy.Time doesnt have it)
-    'time': TypeSchema(time_type_factory, time_type_recycler),
-    'duration': TypeSchema(duration_type_factory, duration_type_recycler),
-
+    'time': TypeChecker(Sanitizer(genpy.Time), Accepter(genpy.Time)),
+    'duration': TypeChecker(Sanitizer(genpy.Duration), Accepter(genpy.Duration)),
 }
 # TODO : add predicates to be able to differentiate int sizes...
 
 
-def typeschema_from_rosmsg_type(rosmsg_type):
-    """
-    Generate the typeschema from a ROS message type.
-
-    :param rosmsg_type: the class for the ros message
-    :return:
-
-    Reference:
-    >>> typeschema_from_rosmsg_type(genpy.Duration)  #doctest: +ELLIPSIS
-    (<function <lambda> at 0x...>, ({'secs': <type 'int'>, 'nsecs': <type 'int'>},))
-
-    >>> typeschema_from_rosmsg_type(genpy.Time)  #doctest: +ELLIPSIS
-    (<function <lambda> at 0x...>, ({'secs': <type 'int'>, 'nsecs': <type 'int'>},))
-    """
-
-    # assert isinstance(rostype, genpy.Message) # TODO : not working ??
-
-    # TODO : is this enough ? or too simple ?
-
-    # Message are equivalent, value per value, but direct copy is not implemented on init...
-    typeschema_gen = lambda v=rosmsg_type(): rosmsg_type(**{k: getattr(v, k) for k in rosmsg_type.__slots__})
-
-    typeschema_acc = ({
-        s: typeschema_from_rosfield_type(srt).accepted_types
-        for s, srt in zip(rosmsg_type.__slots__, rosmsg_type._slot_types)
-    }, )
-
-    return TypeSchema(typeschema_gen, typeschema_acc)
-
-
-def typeschema_from_rosfield_type(slot_type):
+def typechecker_from_rosfield_type(slot_type):
     """
     Retrieves an actual type tuple based on the ros type string
     :param slot_type: the ros type string
     :return: the corresponding typeschema
     Reference :
-    >>> typeschema_from_rosfield_type('bool')
+    >>> typechecker_from_rosfield_type('bool')
     (<type 'bool'>, <type 'bool'>)
-    >>> typeschema_from_rosfield_type('bool[]')
+    >>> typechecker_from_rosfield_type('bool[]')
     ([<type 'bool'>], (<type 'bool'>, [<type 'bool'>]))
 
-    >>> typeschema_from_rosfield_type('int64[]')
+    >>> typechecker_from_rosfield_type('int64[]')
     ([<type 'long'>], (<type 'int'>, <type 'long'>, [(<type 'int'>, <type 'long'>)]))
 
-    >>> typeschema_from_rosfield_type('string[]')
+    >>> typechecker_from_rosfield_type('string[]')
     ([<type 'str'>], (<type 'str'>, <type 'unicode'>, [(<type 'str'>, <type 'unicode'>)]))
 
-    >>> typeschema_from_rosfield_type('time')  #doctest: +ELLIPSIS
+    >>> typechecker_from_rosfield_type('time')  #doctest: +ELLIPSIS
     (<function <lambda> at 0x...>, {'secs': <type 'int'>, 'nsecs': <type 'int'>})
-    >>> typeschema_from_rosfield_type('duration[]')  #doctest: +ELLIPSIS
+    >>> typechecker_from_rosfield_type('duration[]')  #doctest: +ELLIPSIS
     ([<function <lambda> at 0x...>], ({'secs': <type 'int'>, 'nsecs': <type 'int'>}, [{'secs': <type 'int'>, 'nsecs': <type 'int'>}]))
     """
 
-    if slot_type in rosfield_schematype_mapping:  # basic field type, end of recursion
+    if slot_type in rosfield_typechecker:  # basic field type, end of recursion
         # simple type (check genpy.base.is_simple())
-        return rosfield_schematype_mapping.get(slot_type)
+        return rosfield_typechecker.get(slot_type)
     elif slot_type.endswith('[]'):  # we cannot avoid having this here since we can add '[]' to a custom message type
-        # for array types we also want to allow raw elements (we will wrap them when sanitizing)
-        gen_ts = typeschema_from_rosfield_type(slot_type[:-2]).sanitized_type  # sanitized typeschema
-        acc_ts = typeschema_from_rosfield_type(slot_type[:-2]).accepted_types  # accepted typeschema
-        return TypeSchema(
-            [gen_ts],  # the generated typeschema
-            tuple([t for ts in (maybe_tuple(acc_ts), maybe_tuple([acc_ts])) for t in ts])  # the (flatten) accepted typeschema
+        # we need to recurse...
+        typechecker = typechecker_from_rosfield_type(rosfield_typechecker[:-2])
+        return TypeChecker(
+            Array(typechecker.sanitizer),
+            Array(typechecker.accepter)
         )
     else:  # custom message type
         rosmsg_type = genpy.message.get_message_class(slot_type)
-        return typeschema_from_rosmsg_type(rosmsg_type)
+        # we also need to recurse on slot_types
+        slots = {
+            s: typechecker_from_rosfield_type(st)
+            for s, st in zip(rosmsg_type.__slots__, rosmsg_type._slot_types)
+        }
+
+        # this init function set all attributes (slots) from arguments (resolved types)
+        def internal_type_init(self, **ks):
+            for k, s in ks.items():
+                setattr(self, k, s)
+
+        # we dynamically create our class/type with slots to leverage existing type checking mechanisms
+        sanitized_msgtype = type(rosmsg_type.__name__ + "_type", (), {
+            '__slots__': rosmsg_type.__slots__,
+            '__init__': internal_type_init
+        })
+        sanitized_msgtype_instance = sanitized_msgtype(**slots)
+
+        return TypeChecker(Sanitizer(rosmsg_type), Accepter(slots))
+
+
+class RosMsgTypeAccepter(Accepter):
+    def __init__(self, t):
+        if hasattr(t, '__slots__'):  # composed type with slots (ros msg type structure)
+            # we need to recurse on slot_types
+            slots = {
+                s: typechecker_from_rosfield_type(st)
+                for s, st in zip(t.__slots__, t._slot_types)
+                }
+        # in other cases nothing is needed, we use basic accepter logic
+        super(RosMsgTypeAccepter, self).__init__(t)
+
+
+class RosMsgTypeSanitizer(Sanitizer):
+    def __init__(self, t):
+        if hasattr(t, '__slots__'):  # composed type with slots (ros msg type structure)
+            # we need to recurse on slot_types
+            slots = {
+                s: typechecker_from_rosfield_type(st)
+                for s, st in zip(t.__slots__, t._slot_types)
+                }
+
+            # this init function set all attributes (slots) from arguments (resolved types)
+            def internal_type_init(self, **ks):
+                for k, s in ks.items():
+                    setattr(self, k, s)
+
+            # we dynamically create our class/type with slots to leverage existing type checking mechanisms
+            sanitized_msgtype = type(t.__name__ + "_typecheck", (), {
+                '__slots__': t.__slots__,
+                '__init__': internal_type_init
+            })
+            sanitized_msgtype_instance = sanitized_msgtype(**slots)
+
+        # in other cases, we can let the basic sanitizer handle it
+        super(RosMsgTypeSanitizer, self).__init__(t)
+
+    # Special handling of ROS msg structure (objects with __slots__)
+    def __call__(self, v=None):
+        if hasattr(self.t, '__slots__'):
+            return super(RosMsgTypeSanitizer, self).__call__(
+                **{s: getattr(self.t, s).sanitizer(getattr(v, s)) for s in v.__slots__}
+            )
+        else:  # basic type
+            return super(RosMsgTypeSanitizer, self).__call__(v)
+
+
+
+
+        if slot_type in rosfield_typechecker:  # basic field type, end of recursion
+            # simple type (check genpy.base.is_simple())
+            return rosfield_typechecker.get(slot_type)
+        elif slot_type.endswith(
+                '[]'):  # we cannot avoid having this here since we can add '[]' to a custom message type
+            # we need to recurse...
+            typechecker = typechecker_from_rosfield_type(rosfield_typechecker[:-2])
+            return TypeChecker(
+                Array(typechecker.sanitizer),
+                Array(typechecker.accepter)
+            )
+        else:  # custom message type
+            rosmsg_type = genpy.message.get_message_class(slot_type)
+            # we also need to recurse on slot_types
+            slots = {
+                s: typechecker_from_rosfield_type(st)
+                for s, st in zip(rosmsg_type.__slots__, rosmsg_type._slot_types)
+                }
+
+            # this init function set all attributes (slots) from arguments (resolved types)
+            def internal_type_init(self, **ks):
+                for k, s in ks.items():
+                    setattr(self, k, s)
+
+            # we dynamically create our class/type with slots to leverage existing type checking mechanisms
+            sanitized_msgtype = type(rosmsg_type.__name__ + "_type", (), {
+                '__slots__': rosmsg_type.__slots__,
+                '__init__': internal_type_init
+            })
+            sanitized_msgtype_instance = sanitized_msgtype(**slots)
+
+
+        super(RosTypeSanitizer, self).__init__(t)
 
 
 

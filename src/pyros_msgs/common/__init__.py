@@ -13,19 +13,17 @@ import six
 # to get long for py2 and int for py3
 six_long = six.integer_types[-1]
 
-from .typeschemas import (
-    TypeSchemaException,
+from .typechecker import (
+    Accepter, Sanitizer, Array, Any,
+    TypeCheckerException,
     maybe_list,
     maybe_tuple,
     maybe_set,
-    time_type_factory, time_type_recycler,
-    duration_type_factory, duration_type_recycler,
-    TypeSchema,
+    TypeChecker,
 )
 
 from .ros_mappings import (
-    typeschema_from_rosfield_type,
-    typeschema_from_rosmsg_type
+    typechecker_from_rosfield_type,
 )
 
 
