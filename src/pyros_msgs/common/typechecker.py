@@ -1,6 +1,6 @@
-from __future__ import absolute_import, division, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import functools
+# PY2 Py3 ref : http://python-future.org/compatible_idioms.html
 
 """
 TypeSchemas add extra type checking on basic python types.
@@ -59,6 +59,7 @@ def maybe_set(t):
     """Return tuple of one element if ``t`` is a scalar."""
     return t if t is None or isinstance(t, set) else {t}
 
+
 #
 # SANITIZERS for field types
 # Used to construct a new default value or to modify a value passed as argument
@@ -101,16 +102,44 @@ class Accepter(object):
 # Operators on Sanitizer or Accepter
 #
 
+class MinMax(object):
+    def __init__(self, at, min_val, max_val):
+        assert isinstance(at, (Accepter, Any))  # Note MinMax makes sense only for Accepter or Any
+        self.at = at
+        self.min = min_val
+        self.max = max_val
+
+    def __call__(self, v):
+        return self.at(v) and self.min <= v <= self.max
+
+    def __repr__(self):
+        return "MinMax [{self.min}..{self.max}] of {self.at}".format(**locals())
+
+
+class CodePoint(object):
+    def __init__(self, at, min_cp, max_cp):
+        assert isinstance(at, (Accepter, Any))  # Note CodePoint makes sense only for Accepter or Any
+        self.at = at
+        self.min = min_cp
+        self.max = max_cp
+
+    def __call__(self, v):
+        return self.at(v) and all(self.min <= ord(c) <= self.max for c in v)
+
+    def __repr__(self):
+        return "CodePoint [{self.min}..{self.max}] of {self.at}".format(**locals())
+
+
 class Any(object):
     def __init__(self, *at):
-        assert all(isinstance(aet, (Accepter, Array)) for aet in at)  # Note Any makes sense only for Accepter
-        self.at = at
+        assert all(isinstance(aet, (Accepter, Array, MinMax, CodePoint)) for aet in at)  # Note Any makes sense only for Accepter
+        self.at = {st for st in at}
 
     def __call__(self, v):
         return any(st(v) for st in self.at)
 
     def __repr__(self):
-        return "Any of {self.at}".format(**locals())
+        return "Any of {self.at}".format(**locals())  # set-like repr since the meaning ov any is similar to set
 
 
 class Array(object):
@@ -120,25 +149,45 @@ class Array(object):
         It has different meaning for each
         :param t: the sanitizer or accepter to use for each element
         """
-        assert isinstance(t, (Sanitizer, Accepter, Any, Array))
-        self.t = t  # only the first element of that list is valid
+        assert isinstance(t, (Sanitizer, Accepter, Any, MinMax, Array))
+        self.t = t
 
     def __call__(self, v=None):
-        if isinstance(self.t, (Sanitizer)):
+        if not isinstance(v, list):  # we need to force the value to be a list
+            return False
+        elif isinstance(self.t, (Sanitizer)):
             # Array mean generate an array
             return [self.t(e) for e in v] if v is not None else []
-        elif isinstance(self.t, (Accepter, Any)):
+        elif isinstance(self.t, (Accepter, Any, MinMax, CodePoint)):
             # Array mean check all elements
             return all(self.t(e) for e in v)
         else:  # should never happen
-            raise TypeCheckerException("function for Array is neither a Sanitizer or an Accepter")
+            raise TypeCheckerException("function for Array is neither a Sanitizer or an Accepter, Any, MinMax, CodePoint")
 
     def __repr__(self):
         return "Array of {self.t}".format(**locals())
 
 
 class TypeCheckerException(Exception):
-    pass
+    """An Exception supporting unicode message"""
+    def __init__(self, message):
+
+        if isinstance(message, six.text_type):
+            super(TypeCheckerException, self).__init__(message.encode('utf-8'))
+            self.message = message
+
+        elif isinstance(message, six.binary_type):
+            super(TypeCheckerException, self).__init__(message)
+            self.message = message.decode('utf-8')
+
+        else:      # This shouldn't happen...
+            raise TypeError("message in an exception has to be a string (optionally unicode)")
+
+    def __str__(self):  # when we need a binary string
+        return self.message.encode('ascii', 'ignore')
+
+    def __unicode__(self):  # when we need a text string
+        return self.message
 
 
 class TypeChecker(object):
@@ -210,6 +259,16 @@ class TypeChecker(object):
         >>> intlongarray([42, six_long(42)])
         [42L, 42L]
 
+        We can also check min and max bounds
+        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), Accepter(TypeMinMax(six_long,0,255)))))
+        >>> intlongarray([42, six_long(42)])
+        [42, 42]
+        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), Accepter(TypeMinMax(six_long,0,255)))))
+        >>> intlongarray([42, six_long(234234234234234234234)])
+        Traceback (most recent call last):
+        ...
+        TypeCheckerException: '[42, 234234234234234234234L]:<type 'list'>' is not accepted by Array of Any of set([Accepter from <type 'int'>, Accepter from TypeMinMax(type=<type 'long'>, min=0, max=255)])
+
         Examples with complex types
         >>> class Custom(object):
         ...     def __init__(self, d1=0, d2=''):
@@ -264,7 +323,7 @@ class TypeChecker(object):
             try:
                 sanitized_value = self.sanitizer(value)
             except TypeError as te:
-                raise TypeCheckerException("'{v}:{vt} cannot be sanitized by {s}\n              Reason: {te}".format(
+                raise TypeCheckerException("'{v}:{vt}' cannot be sanitized by {s}\n              Reason: {te}".format(
                     v=value, vt=type(value), s=self.sanitizer, te=te
                 ))
         else:

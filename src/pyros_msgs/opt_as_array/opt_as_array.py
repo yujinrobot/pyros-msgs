@@ -1,9 +1,9 @@
 from __future__ import absolute_import, division, print_function
 
 from pyros_msgs.common import (
-    TypeSchemaException,
+    TypeCheckerException,
     typeschema_from_rosfield_type,
-    TypeSchema,
+    TypeChecker,
 )
 
 
