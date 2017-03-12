@@ -327,9 +327,14 @@ class TypeChecker(object):
                     v=value, vt=type(value), s=self.sanitizer, te=te
                 ))
         else:
-            raise TypeCheckerException("'{v}:{vt}' is not accepted by {a}".format(
-                v=value, vt=type(value), a=self.accepter
-            ))
+            try:
+                raise TypeCheckerException("'{v}:{vt}' is not accepted by {a}".format(
+                    v=value, vt=type(value), a=self.accepter
+                ))
+            except UnicodeDecodeError:  # if we get an error decoding the value, we change the exception text
+                raise TypeCheckerException("value of type {vt} is not accepted by {a}".format(
+                    vt=type(value), a=self.accepter
+                ))
 
         return sanitized_value
 
