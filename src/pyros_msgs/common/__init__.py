@@ -14,11 +14,11 @@ import six
 six_long = six.integer_types[-1]
 
 from .typechecker import (
-    Accepter, Sanitizer, Array, Any,
-    TypeCheckerException,
     maybe_list,
     maybe_tuple,
     maybe_set,
+    Accepter, Sanitizer, Array, Any, MinMax, CodePoint,
+    TypeCheckerException,
     TypeChecker,
 )
 

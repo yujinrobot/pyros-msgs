@@ -68,4 +68,4 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         integer_type_checker_min_max(value)
-    assert "is not accepted by MinMax [-42..13835058055282163712] of Any of set([Accepter from <type 'int'>, Accepter from <type 'long'>])" in excinfo.value.message
+    assert "is not accepted by MinMax [-42..13835058055282163712] of Any of set" in excinfo.value.message

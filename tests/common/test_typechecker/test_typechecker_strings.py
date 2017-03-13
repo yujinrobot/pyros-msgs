@@ -50,7 +50,7 @@ def test_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         string_type_checker(value)
-    assert "is not accepted by Any of set([CodePoint [0..127] of Accepter from <type 'unicode'>, Accepter from <type 'str'>])" in excinfo.value.message
+    assert "is not accepted by Any of set" in excinfo.value.message
 
 
 # Separate test for unicode fanciness
@@ -62,4 +62,4 @@ def test_typechecker_breaks_on_bad_text_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         string_type_checker(value)
-    assert "is not accepted by Any of set([CodePoint [0..127] of Accepter from <type 'unicode'>, Accepter from <type 'str'>])" in excinfo.value.message
+    assert "is not accepted by Any of set" in excinfo.value.message

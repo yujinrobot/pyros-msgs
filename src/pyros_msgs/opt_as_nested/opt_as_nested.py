@@ -8,9 +8,9 @@ import six
 import std_msgs.msg
 from pyros_msgs.common import (
     six_long,
-    TypeSchemaException,
-    typeschema_from_rosfield_type,
-    TypeSchema
+    TypeCheckerException,
+    typechecker_from_rosfield_type,
+    TypeChecker
 )
 
 
@@ -32,7 +32,7 @@ def duck_punch(msg_mod, opt_slot_list):
         # We build our own type schema here from our slots
         # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
         slotsdict = {
-            s: typeschema_from_rosfield_type(srt)
+            s: typechecker_from_rosfield_type(srt)
             for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
             }
 
@@ -48,7 +48,7 @@ def duck_punch(msg_mod, opt_slot_list):
             try:
                 if sval is not None:  # we allow any field to be None without typecheck
                     kwds[s] = st(sval)
-            except TypeSchemaException as tse:
+            except TypeCheckerException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
                 raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
@@ -58,7 +58,7 @@ def duck_punch(msg_mod, opt_slot_list):
         super(msg_mod, self).__init__(*args, **kwds)
 
         # We follow the usual ROS generated message behavior and assign default values
-        for s, st in [(_slot, typeschema_from_rosfield_type(_slot_type)) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
+        for s, st in [(_slot, typechecker_from_rosfield_type(_slot_type)) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
             if getattr(self, s) is None:
                 setattr(self, s, st.default())
 

@@ -20,7 +20,7 @@ from pyros_msgs.common.typechecker import (
     six_long,
     maybe_list,
     maybe_tuple,
-    Sanitizer, Accepter, Array, Any,
+    Sanitizer, Accepter, Array, Any, MinMax,
     TypeChecker,
     TypeCheckerException,
 )
@@ -28,13 +28,12 @@ from pyros_msgs.common.typechecker import (
 from pyros_msgs.common.ros_mappings import typechecker_from_rosfield_type
 
 
-
 from hypothesis import given, example, settings, Verbosity, HealthCheck
 import hypothesis.strategies as st
 
 
 # The main point here is insuring that any sanitized type will safely serialize and deserialize
-# And also that any type that doesnt safely serialize / deserialize will not pass hte type checker
+# And also that any type that doesnt safely serialize / deserialize will not pass the type checker
 
 rosmsg_slot_types = [
     ('bool', st.booleans()),

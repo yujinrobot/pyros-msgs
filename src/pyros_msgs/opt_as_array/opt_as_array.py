@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function
 
 from pyros_msgs.common import (
     TypeCheckerException,
-    typeschema_from_rosfield_type,
+    typechecker_from_rosfield_type,
     TypeChecker,
 )
 
@@ -25,7 +25,7 @@ def duck_punch(msg_mod, opt_slot_list):
         # We build our own type schema here from our slots
         # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
         slotsdict = {
-            s: typeschema_from_rosfield_type(srt)
+            s: typechecker_from_rosfield_type(srt)
             for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
         }
 
@@ -42,7 +42,7 @@ def duck_punch(msg_mod, opt_slot_list):
             sval = kwds.get(s, st.default())
             try:
                 kwds[s] = st(sval)  # type checking val
-            except TypeSchemaException as tse:
+            except TypeCheckerException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
                 raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))

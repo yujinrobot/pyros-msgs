@@ -66,14 +66,24 @@ def maybe_set(t):
 #
 
 
-# Using classes and object hierarchy to represent sanitizer and accepter functions since python prefers that
+# Using classes and object hierarchy to represent sanitizer and accepter functions
+# since python prefers that to functions or types
 class Sanitizer(object):
     def __init__(self, t):
         self.t = t
 
     def __call__(self, *args, **kwargs):
-        # we sanitize by running the type initializer with the value
-        return self.t(*args, **kwargs)
+        if kwargs and hasattr(self.t, __dict__): # if self.t is an (new-style) object, it specifies how to sanitize, ie it is a filter
+            return self.t(**{
+                subk: subt.sanitizer(kwargs.get(subk))
+                for subk, subt in vars(self.t).items()
+            })
+            #TODO : is it the same with slots ?
+        elif args:  # basic type (or mapping type but we pass a full value)
+            # we sanitize by running the type initializer with the value
+            return self.t(*args)
+        else:
+            TypeCheckerException("Calling {self} with {args} and {kwargs}. not supported".format(**locals()))
 
     def __repr__(self):
         return "Sanitizer to {self.t}".format(**locals())
@@ -82,6 +92,8 @@ class Sanitizer(object):
 # ACCEPTERS for field types
 # Used to certify the type match (duck typing for composed types)
 #
+
+# TODO : optional value -> support None... ?
 
 
 class Accepter(object):
@@ -401,3 +413,42 @@ class TypeChecker(object):
         return self.sanitizer()
 
 
+
+
+
+# We need instance to determine field type
+# TODO : use type hints instead of instantiation to determine types and sanitizers
+def make_typechecker_from_prototype(inst, field_map=None):
+    """
+    Builds an Accepter from an object instance
+    :param inst: the instance to introspect
+    :param field_map: the mapping from python type to typecheck instance
+    :return:
+    """
+
+    field_map = field_map or make_typechecker_from_prototype  # default field map is the trivial recursive one
+    t = type(inst)
+    if t in [bool, int, float, six.string_types]:
+        # our stopping case is simple because of our chosen representation (python types representing python types)
+        return TypeChecker(Sanitizer(t), Accepter(t))
+    elif t is list and len(t) >1:
+        subt = type(inst[0])  # getting the type of the first element
+        return TypeChecker(Array(Sanitizer(subt)), Array(Accepter(t)))
+    elif hasattr(t, __dict__):  # composed type with dict
+        # we need to recurse on dict keys that are not builtin
+        members = {
+            f: field_map(type(ft))
+            for f, ft in vars(type(inst)).items()
+            if not f.startswith("__")
+        }
+
+        def sanitizer(**kwargs):
+            return t(**{
+                k: members.get(k)(v)  # we pass a subvalue to the sanitizer of the member type
+                for k, v in kwargs
+            })
+
+        return TypeChecker(Sanitizer(sanitizer), Accepter(members))
+
+# TODO : use type hints instead of instantiation
+# def make_typechecker_from_class(cls, field_map=None):
