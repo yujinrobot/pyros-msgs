@@ -1,10 +1,13 @@
 from __future__ import absolute_import, division, print_function
 
 from pyros_msgs.common import (
+    maybe_list,
     TypeCheckerException,
     typechecker_from_rosfield_type,
     TypeChecker,
 )
+
+from .ros_mappings import typechecker_from_rosfield_opttype
 
 
 def duck_punch(msg_mod, opt_slot_list):
@@ -19,13 +22,13 @@ def duck_punch(msg_mod, opt_slot_list):
 
         if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
             # so we can change it to kwarg to be more accepting (and more robust for changes)
-            kwds.update(zip([s for s in self.__slots__], args))
+            kwds.update(zip(self.__slots__, args))
             args = ()
 
         # We build our own type schema here from our slots
         # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
         slotsdict = {
-            s: typechecker_from_rosfield_type(srt)
+            s: typechecker_from_rosfield_opttype(srt) if s in self._opt_slots else typechecker_from_rosfield_type(srt)
             for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
         }
 
@@ -41,11 +44,14 @@ def duck_punch(msg_mod, opt_slot_list):
             # We assign default values here to make sure everything is valid
             sval = kwds.get(s, st.default())
             try:
+                # implicit conversion for optional slots #TODO : verify if we do need it or not
+                if s in self._opt_slots:
+                    sval = maybe_list(sval)
                 kwds[s] = st(sval)  # type checking val
             except TypeCheckerException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
-                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
+                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepter}".format(**locals()))
 
         # By now the kwds is filled up with values
         # the parent init will do the usual ROS message setup.

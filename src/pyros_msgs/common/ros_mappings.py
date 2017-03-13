@@ -27,14 +27,16 @@ from pyros_msgs.common import (
 rosfield_typechecker = {
     # (generated(1), accepted(n)) tuples
     'bool': TypeChecker(Sanitizer(bool), Accepter(bool)),
+    # CAREFUL : in python booleans are integers
+    # => booleans will be accepted as integers... not sure if we can do anything about this.
     'int8': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -128, 127)),
     'int16': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -32768, 32767)),
     'int32': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -2147483648, 2147483647)),
-    'int64': TypeChecker(Sanitizer(six_long), MinMax(Accepter({int, six_long}), six_long(-9223372036854775808), six_long(9223372036854775807))),
+    'int64': TypeChecker(Sanitizer(six_long), MinMax(Any(Accepter(int), Accepter(six_long)), six_long(-9223372036854775808), six_long(9223372036854775807))),
     'uint8': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 255)),
     'uint16': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 65535)),
     'uint32': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 4294967295)),
-    'uint64': TypeChecker(Sanitizer(six_long), MinMax(Accepter({int, six_long}), 0, six_long(18446744073709551615))),
+    'uint64': TypeChecker(Sanitizer(six_long), MinMax(Any(Accepter(int), Accepter(six_long)), 0, six_long(18446744073709551615))),
     'float32': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -3.4028235e+38, 3.4028235e+38)),
     'float64': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -1.7976931348623157e+308, 1.7976931348623157e+308)),  # we get these values from numpy, maybe we should use numpy (finfo, iinfo) directly here?
     # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
@@ -89,10 +91,10 @@ def typechecker_from_rosfield_type(slot_type):
             # TODO : filter special fields ?
         }
 
-        def sanitizer(**kwargs):
+        def sanitizer(value=None):
             return rosmsg_type(**{
-                k: slots.get(k)(v)  # we pass a subvalue to the sanitizer of the member type
-                for k, v in kwargs
+                k: tc(getattr(value, k)) if value else tc()  # we pass a subvalue to the sanitizer of the member type
+                for k, tc in slots.items()
             })
 
         return TypeChecker(Sanitizer(sanitizer), Accepter(slots))

@@ -63,7 +63,7 @@ def test_wrong_init_except(data):
     with nose.tools.assert_raises(AttributeError) as cm:
         test_opt_bool_as_array(data)
     assert isinstance(cm.exception, AttributeError)
-    assert cm.exception.message == "{data} does not match the accepted type schema for 'data' : (<type 'bool'>, [<type 'bool'>])".format(data)
+    assert "does not match the accepted type schema for 'data' : Any of set" in cm.exception.message
 
 
 # Just in case we run this directly

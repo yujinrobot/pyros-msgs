@@ -74,6 +74,7 @@ class Sanitizer(object):
 
     def __call__(self, *args, **kwargs):
         if kwargs and hasattr(self.t, __dict__): # if self.t is an (new-style) object, it specifies how to sanitize, ie it is a filter
+            # TODO : is this actually useful / used ??
             return self.t(**{
                 subk: subt.sanitizer(kwargs.get(subk))
                 for subk, subt in vars(self.t).items()
@@ -81,7 +82,7 @@ class Sanitizer(object):
             #TODO : is it the same with slots ?
         elif args:  # basic type (or mapping type but we pass a full value)
             # we sanitize by running the type initializer with the value
-            return self.t(*args)
+            return self.t(*(a for a in args if a is not None))  # careful we do not want to pass None to a basic type
         else:
             TypeCheckerException("Calling {self} with {args} and {kwargs}. not supported".format(**locals()))
 
@@ -100,8 +101,10 @@ class Accepter(object):
     def __init__(self, t):
         self.t = t
 
-    def __call__(self, v):
-        if isinstance(self.t, dict):
+    def __call__(self, v=None):
+        if self.t is None:  # if our accepted type is none we only accept none
+            return v is None
+        elif isinstance(self.t, dict):
             return all(hasattr(v, s) and self.t.get(s).accepter(getattr(v, s)) for s, st in self.t.items())
         else:  # basic type
             return isinstance(v, self.t)
@@ -142,7 +145,7 @@ class CodePoint(object):
         return "CodePoint [{self.min}..{self.max}] of {self.at}".format(**locals())
 
 
-class Any(object):
+class Any(object):  # Any has the same meaning as a set of accepters...
     def __init__(self, *at):
         assert all(isinstance(aet, (Accepter, Array, MinMax, CodePoint)) for aet in at)  # Note Any makes sense only for Accepter
         self.at = {st for st in at}
@@ -165,9 +168,8 @@ class Array(object):
         self.t = t
 
     def __call__(self, v=None):
-        if not isinstance(v, list):  # we need to force the value to be a list
-            return False
-        elif isinstance(self.t, (Sanitizer)):
+        assert v is None or isinstance(v, list)  # we need to force the value to be a list
+        if isinstance(self.t, (Sanitizer, )):
             # Array mean generate an array
             return [self.t(e) for e in v] if v is not None else []
         elif isinstance(self.t, (Accepter, Any, MinMax, CodePoint)):
@@ -212,7 +214,7 @@ class TypeChecker(object):
         self.sanitizer = sanitizer
         self.accepter = accepter
 
-    def __call__(self, value):
+    def __call__(self, value=None):
         """
         TypeCheck (with accepter) and sanitize (with sanitizer) the value.
         Returns an exception if the value cannot be accepted.
@@ -324,12 +326,15 @@ class TypeChecker(object):
         ...
         TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {'d2': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), 'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
         """
-        try:
-            accepted = self.accepter(value)
-        except Exception as e:
-            raise TypeCheckerException("'{v}:{vt}' cannot be accepted by {a}\n              Reason: {e}".format(
-                v=value, vt=type(value), a=self.accepter, e=e
-            ))
+
+        accepted = value is None  # value none is always accepted (default sanitized value)
+        if not accepted:
+            try:
+                accepted = self.accepter(value)
+            except Exception as e:
+                raise TypeCheckerException("'{v}:{vt}' cannot be accepted by {a}\n              Reason: {e}".format(
+                    v=value, vt=type(value), a=self.accepter, e=e
+                ))
 
         if accepted:
             try:
@@ -441,7 +446,7 @@ def make_typechecker_from_prototype(inst, field_map=None):
             for f, ft in vars(type(inst)).items()
             if not f.startswith("__")
         }
-
+        #TODO : FIX (copy from rostype implementation) and test...
         def sanitizer(**kwargs):
             return t(**{
                 k: members.get(k)(v)  # we pass a subvalue to the sanitizer of the member type

@@ -38,6 +38,7 @@ def test_typechecker_maintains_equality(value):
     This means that sanitization conserve value equality, in the python sense.
     """
     assume(not math.isnan(value) and not math.isinf(value))  # because equality doesnt hold for inf and nan
+    # TODO : check how we can/ if we want to support this usecase...
     assert float_type_checker(value) == value
 
 
