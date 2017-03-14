@@ -168,13 +168,14 @@ class Array(object):
         self.t = t
 
     def __call__(self, v=None):
-        assert v is None or isinstance(v, list)  # we need to force the value to be a list
+        if not isinstance(v, list) and v is not None:  # we need to force the value to be a list
+            return False
         if isinstance(self.t, (Sanitizer, )):
             # Array mean generate an array
             return [self.t(e) for e in v] if v is not None else []
         elif isinstance(self.t, (Accepter, Any, MinMax, CodePoint)):
             # Array mean check all elements
-            return all(self.t(e) for e in v)
+            return all(self.t(e) for e in v) if v is not None else self.t(None)
         else:  # should never happen
             raise TypeCheckerException("function for Array is neither a Sanitizer or an Accepter, Any, MinMax, CodePoint")
 
