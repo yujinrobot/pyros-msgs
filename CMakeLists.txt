@@ -51,7 +51,7 @@ add_message_files(
   FILES
 
     # For testing only
-    test_opt_empty_as_array.msg
+    test_opt_std_empty_as_array.msg
     test_opt_bool_as_array.msg
     test_opt_int8_as_array.msg
     test_opt_int16_as_array.msg
