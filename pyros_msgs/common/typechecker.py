@@ -44,6 +44,8 @@ import six
 # to get long for py2 and int for py3
 six_long = six.integer_types[-1]
 
+import contracts
+
 
 def maybe_list(l):
     """Return list of one element if ``l`` is a scalar."""
@@ -70,7 +72,7 @@ def maybe_set(t):
 # since python prefers that to functions or types
 class Sanitizer(object):
     def __init__(self, t):
-        self.t = t
+        self.t = t  # TODO : should we split that and put it in the typechecker itself ? keeping here only structure  to bild the type next time ?
 
     def __call__(self, *args, **kwargs):
         if kwargs and hasattr(self.t, __dict__): # if self.t is an (new-style) object, it specifies how to sanitize, ie it is a filter
@@ -114,6 +116,16 @@ class Accepter(object):
     def __repr__(self):
         return "Accepter from {self.t}".format(**locals())
 
+
+class ContractAccepter(object):
+    def __init__(self, ctrct):
+        self.ctrct = ctrct
+
+    def __call__(self, v=None):
+        return contracts.check(self.ctrct)
+
+    def __repr__(self):
+        return "ContractAccepter for {self.ctrct}".format(**locals())
 
 #
 # Operators on Sanitizer or Accepter
@@ -208,14 +220,14 @@ class TypeCheckerException(Exception):
 
 
 class TypeChecker(object):
-    def __init__(self, sanitizer, accepter):
+    def __init__(self, contract, sanitizer):
         """
         :param sanitizer: a function to be used as sanitizer
         :param accepter: a function to be used as accepter
         """
 
         self.sanitizer = sanitizer
-        self.accepter = accepter
+        self.contract = contract
 
     def __call__(self, value=None):
         """
@@ -328,18 +340,20 @@ class TypeChecker(object):
         TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {u'd2': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), u'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
         """
 
-        accepted = value is None  # value none is always accepted (default sanitized value)
-        if not accepted:
-            try:
-                accepted = self.accepter(value)  # TODO : any new-style object can be read as a dictionnary... or we can access slots.
-                # TODO : replace with contracts ?
+        if contracts.check(self.contract, value):
 
-            except Exception as e:
-                raise TypeCheckerException("'{v}:{vt}' cannot be accepted by {a}\n              Reason: {e}".format(
-                    v=value, vt=type(value), a=self.accepter, e=e
-                ))
-
-        if accepted:
+        # accepted = value is None  # value none is always accepted (default sanitized value)
+        # if not accepted:
+        #     try:
+        #         accepted = self.accepter(value)  # TODO : any new-style object can be read as a dictionnary... or we can access slots.
+        #         # TODO : replace with contracts ?
+        #
+        #     except Exception as e:
+        #         raise TypeCheckerException("'{v}:{vt}' cannot be accepted by {a}\n              Reason: {e}".format(
+        #             v=value, vt=type(value), a=self.accepter, e=e
+        #         ))
+        #
+        # if accepted:
             try:
                 sanitized_value = self.sanitizer(value)
             except TypeError as te:
@@ -348,12 +362,12 @@ class TypeChecker(object):
                 ))
         else:
             try:
-                raise TypeCheckerException("'{v}:{vt}' is not accepted by {a}".format(
-                    v=value, vt=type(value), a=self.accepter
+                raise TypeCheckerException("'{v}:{vt}' is not valid for contract {a}".format(
+                    v=value, vt=type(value), a=self.contract
                 ))
             except UnicodeDecodeError:  # if we get an error decoding the value, we change the exception text
-                raise TypeCheckerException("value of type {vt} is not accepted by {a}".format(
-                    vt=type(value), a=self.accepter
+                raise TypeCheckerException("value of type {vt} is not valid for contract {a}".format(
+                    vt=type(value), a=self.contract
                 ))
 
         return sanitized_value

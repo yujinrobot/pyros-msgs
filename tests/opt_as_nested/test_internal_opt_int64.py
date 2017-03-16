@@ -12,7 +12,7 @@ except ImportError:
     pyros_setup.configurable_import().configure().activate()
     import genpy
     from pyros_msgs.opt_as_nested import opt_int64
-    from pyros_msgs.common import typeschema_from_rosfield_type  # just for testing
+    from pyros_msgs.common import typechecker_from_rosfield_type  # just for testing
 
 import nose
 
@@ -26,7 +26,7 @@ def test_init_data_internal():
 def test_init_default_internal():
     msg = opt_int64()
     assert msg.initialized_ is False
-    assert msg.data == typeschema_from_rosfield_type('int64').default()
+    assert msg.data == typechecker_from_rosfield_type('int64').default()
 
 
 def test_reset_default_internal():
@@ -37,7 +37,7 @@ def test_reset_default_internal():
     opt_int64.reset_default()
     msg = opt_int64()
     assert msg.initialized_ is False
-    assert msg.data == typeschema_from_rosfield_type('int64').default()
+    assert msg.data == typechecker_from_rosfield_type('int64').default()
 
 
 def test_force_init_excepts_internal():

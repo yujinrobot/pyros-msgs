@@ -8,6 +8,7 @@ from pyros_msgs.common import (
 )
 
 from .ros_mappings import typechecker_from_rosfield_opttype
+from contracts import contract
 
 
 def duck_punch(msg_mod, opt_slot_list):
@@ -61,7 +62,10 @@ def duck_punch(msg_mod, opt_slot_list):
         # Default values have been forcibly assigned when required.
 
     # duck punching into genpy generated message classes.
-    msg_mod.__init__ = init_punch
+    # adding contract to verify arguments
+    args_contract = "tuple(" +
+    kwargs_contract = "dict("
+    msg_mod.__init__ = contract(init_punch, args="tuple()", kwargs="")
     # msg_mod.__get__ = get_punch
     # msg_mod.__set__ = set_punch
     # msg_mod.__delete__ = delete_punch

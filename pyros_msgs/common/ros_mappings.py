@@ -15,6 +15,7 @@ except ImportError:
 
 
 import six
+import contracts
 
 from pyros_msgs.common import (
     six_long,
@@ -23,25 +24,41 @@ from pyros_msgs.common import (
 )
 
 
+# we can store contract directly in the contracts module (no need for some special structure here)
+# TODO : check if the numpy contracts work without numpy... otherwise should we to redefine ? or depend on numpy ?
+contracts.new_contract('ros_bool', 'bool')
+contracts.new_contract('ros_int8', str('int8'))
+contracts.new_contract('ros_int16', str('int16'))
+contracts.new_contract('ros_int32', str('int32'))
+contracts.new_contract('ros_int64', str('int64'))
+contracts.new_contract('ros_uint8', str('uint8'))
+contracts.new_contract('ros_uint16', str('uint16'))
+contracts.new_contract('ros_uint32', str('uint32'))
+contracts.new_contract('ros_uint64', str('uint64'))
+contracts.new_contract('ros_float32', str('float32'))
+contracts.new_contract('ros_float64', str('float64'))
+contracts.new_contract('ros_string', str('str|unicode'))  # TODO : improve that (codepoint)
+
 # Ref : http://wiki.ros.org/msg
 rosfield_typechecker = {
     # (generated(1), accepted(n)) tuples
-    'bool': TypeChecker(Sanitizer(bool), Accepter(bool)),
+    'bool': TypeChecker('ros_bool', Sanitizer(bool)),
     # CAREFUL : in python booleans are integers
     # => booleans will be accepted as integers... not sure if we can do anything about this.
-    'int8': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -128, 127)),
-    'int16': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -32768, 32767)),
-    'int32': TypeChecker(Sanitizer(int), MinMax(Accepter(int), -2147483648, 2147483647)),
-    'int64': TypeChecker(Sanitizer(six_long), MinMax(Any(Accepter(int), Accepter(six_long)), six_long(-9223372036854775808), six_long(9223372036854775807))),
-    'uint8': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 255)),
-    'uint16': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 65535)),
-    'uint32': TypeChecker(Sanitizer(int), MinMax(Accepter(int), 0, 4294967295)),
-    'uint64': TypeChecker(Sanitizer(six_long), MinMax(Any(Accepter(int), Accepter(six_long)), 0, six_long(18446744073709551615))),
-    'float32': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -3.4028235e+38, 3.4028235e+38)),
-    'float64': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -1.7976931348623157e+308, 1.7976931348623157e+308)),  # we get these values from numpy, maybe we should use numpy (finfo, iinfo) directly here?
+    'int8': TypeChecker('ros_int8', Sanitizer(int)),
+    'int16': TypeChecker('ros_int16', Sanitizer(int)),
+    'int32': TypeChecker('ros_int32', Sanitizer(int)),
+    'int64': TypeChecker('ros_int64', Sanitizer(six_long)),
+    'uint8': TypeChecker('ros_uint8', Sanitizer(int)),
+    'uint16': TypeChecker('ros_uint16', Sanitizer(int)),
+    'uint32': TypeChecker('ros_uint32', Sanitizer(int)),
+    'uint64': TypeChecker('ros_uint64', Sanitizer(six_long)),
+    'float32': TypeChecker('ros_float32', Sanitizer(float)),
+    'float64': TypeChecker('ros_float64', Sanitizer(float)),
     # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
-    'string': TypeChecker(Sanitizer(six.binary_type), Any(Accepter(six.binary_type), CodePoint(Accepter(six.text_type), min_cp=0, max_cp=127))),
+    'string': TypeChecker('ros_string', Sanitizer(six.binary_type)),
 }
+
 
 
 def typechecker_from_rosfield_type(slot_type):
@@ -74,8 +91,8 @@ def typechecker_from_rosfield_type(slot_type):
         # we need to recurse...
         typechecker = typechecker_from_rosfield_type(slot_type[:-2])
         return TypeChecker(
-            Array(typechecker.sanitizer),
-            Array(typechecker.accepter)
+            "list(" + typechecker.contract + ")",
+            Array(typechecker.sanitizer)
         )
     else:  # custom message type  # TODO confirm instance of genpy.Message ?
         # We accept the message python type, or the ros string description
@@ -91,6 +108,11 @@ def typechecker_from_rosfield_type(slot_type):
             # TODO : filter special fields ?
         }
 
+        def contract_callable(v):
+                all(hasattr(v, s) and slots.get(s).accepter(getattr(v, s)) for s, st in slots.items())
+
+        contract = contracts.new_contract("ros_" + slot_type, contract_callable)
+
         def sanitizer(value):  # we do not need default value here, no optional nested
             return rosmsg_type(**{
                 k: tc(getattr(value, k)) if value else tc()  # we pass a subvalue to the sanitizer of the member type
@@ -98,7 +120,7 @@ def typechecker_from_rosfield_type(slot_type):
             })
         # TODO : to be able to use this from __init__ in messages types, we need to return only the dictionnary.
 
-        return TypeChecker(Sanitizer(sanitizer), Accepter(slots))
+        return TypeChecker(contract, Sanitizer(sanitizer))
 
 rosfield_typechecker.update({
     # for time and duration we want to extract the slots
