@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 """
 pyros_msgs.opt_as_array is a module that interprets arrays as optional fields in a message.
