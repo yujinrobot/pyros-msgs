@@ -102,6 +102,8 @@ class Accepter(object):
         self.t = t
 
     def __call__(self, v=None):
+        # TODO : we probably want to get args and kwargs here to match "any" kind of function call (like for sanitizer)
+        # It might be helpful when we have unstrictly specified nested types instance...
         if self.t is None:  # if our accepted type is none we only accept none
             return v is None
         elif isinstance(self.t, dict):
@@ -239,8 +241,7 @@ class TypeChecker(object):
         >>> boolarray_tc(True)
         Traceback (most recent call last):
         ...
-        TypeCheckerException: 'True:<type 'bool'>' cannot be accepted by Array of Accepter from <type 'bool'>
-                      Reason: 'bool' object is not iterable
+        TypeCheckerException: 'True:<type 'bool'>' is not accepted by Array of Accepter from <type 'bool'>
         >>> boolarray_tc([False])
         [False]
         >>> boolarray_tc([False, True])
@@ -257,14 +258,13 @@ class TypeChecker(object):
         >>> intoptarray_array_tc([[42], 23])
         Traceback (most recent call last):
         ...
-        TypeCheckerException: '[[42], 23]:<type 'list'> cannot be sanitized by Array of Sanitizer to <type 'int'>
+        TypeCheckerException: '[[42], 23]:<type 'list'>' cannot be sanitized by Array of Sanitizer to <type 'int'>
                       Reason: int() argument must be a string or a number, not 'list'
         >>> longarray_tc = TypeChecker(Array(Sanitizer(six_long)), Array(Accepter(six_long)))
         >>> longarray_tc(six_long(42))
         Traceback (most recent call last):
         ...
-        TypeCheckerException: '42:<type 'long'>' cannot be accepted by Array of Accepter from <type 'long'>
-                      Reason: 'long' object is not iterable
+        TypeCheckerException: '42:<type 'long'>' is not accepted by Array of Accepter from <type 'long'>
         >>> intarray_tc = TypeChecker(Array(Sanitizer(int)), Array(Accepter(int)))
         >>> intarray_tc([six_long(42)])
         Traceback (most recent call last):
@@ -275,14 +275,14 @@ class TypeChecker(object):
         [42L, 42L]
 
         We can also check min and max bounds
-        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), Accepter(TypeMinMax(six_long,0,255)))))
+        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), MinMax(Accepter(six_long),0,255))))
         >>> intlongarray([42, six_long(42)])
         [42, 42]
-        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), Accepter(TypeMinMax(six_long,0,255)))))
+        >>> intlongarray = TypeChecker(Array(Sanitizer(int)), Array(Any(Accepter(int), MinMax(Accepter(six_long),0,255))))
         >>> intlongarray([42, six_long(234234234234234234234)])
         Traceback (most recent call last):
         ...
-        TypeCheckerException: '[42, 234234234234234234234L]:<type 'list'>' is not accepted by Array of Any of set([Accepter from <type 'int'>, Accepter from TypeMinMax(type=<type 'long'>, min=0, max=255)])
+        TypeCheckerException: '[42, 234234234234234234234L]:<type 'list'>' is not accepted by Array of Any of set([Accepter from <type 'int'>, MinMax [0..255] of Accepter from <type 'long'>])
 
         Examples with complex types
         >>> class Custom(object):
@@ -316,7 +316,7 @@ class TypeChecker(object):
         >>> customd1d2_tc(custom_msg)
         Traceback (most recent call last):
         ...
-        TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {'bad_field': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), 'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
+        TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {u'bad_field': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), u'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
 
         >>> customd1d2_tc = TypeChecker(Sanitizer(customd1d2_sanitizer), Accepter({
         ...     'd1': TypeChecker(Sanitizer(int),Accepter(int)),
@@ -325,13 +325,15 @@ class TypeChecker(object):
         >>> customd1d2_tc(custom_msg)
         Traceback (most recent call last):
         ...
-        TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {'d2': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), 'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
+        TypeCheckerException: 'd1:42 d2:bla:<class 'typechecker.Custom'>' is not accepted by Accepter from {u'd2': (Sanitizer to <type 'int'>, Accepter from <type 'int'>), u'd1': (Sanitizer to <type 'int'>, Accepter from <type 'int'>)}
         """
 
         accepted = value is None  # value none is always accepted (default sanitized value)
         if not accepted:
             try:
-                accepted = self.accepter(value)
+                accepted = self.accepter(value)  # TODO : any new-style object can be read as a dictionnary... or we can access slots.
+                # TODO : replace with contracts ?
+
             except Exception as e:
                 raise TypeCheckerException("'{v}:{vt}' cannot be accepted by {a}\n              Reason: {e}".format(
                     v=value, vt=type(value), a=self.accepter, e=e
@@ -419,9 +421,6 @@ class TypeChecker(object):
         return self.sanitizer()
 
 
-
-
-
 # We need instance to determine field type
 # TODO : use type hints instead of instantiation to determine types and sanitizers
 def make_typechecker_from_prototype(inst, field_map=None):
@@ -455,6 +454,7 @@ def make_typechecker_from_prototype(inst, field_map=None):
             })
 
         return TypeChecker(Sanitizer(sanitizer), Accepter(members))
+
 
 # TODO : use type hints instead of instantiation
 # def make_typechecker_from_class(cls, field_map=None):

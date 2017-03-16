@@ -20,6 +20,8 @@ from pyros_msgs.common import (
     six_long,
     Accepter, Sanitizer, Array, Any, MinMax, CodePoint,
     TypeChecker,
+    TypeChecker,
+    typechecker_from_rosfield_type
 )
 
 
@@ -43,8 +45,7 @@ rosfield_typechecker = {
     'string': TypeChecker(Sanitizer(six.binary_type), Any(Accepter(six.binary_type), CodePoint(Accepter(six.text_type), min_cp=0, max_cp=127))),
 }
 
-
-def typechecker_from_rosfield_type(slot_type):
+def typechecker_from_rosfield_opttype(slot_type):
     """
     Retrieves an actual type tuple based on the ros type string
     :param slot_type: the ros type string
@@ -68,15 +69,11 @@ def typechecker_from_rosfield_type(slot_type):
     """
 
     if slot_type in rosfield_typechecker:  # basic field type, end of recursion
-        # simple type (check genpy.base.is_simple())
-        return rosfield_typechecker.get(slot_type)
+        # we need to recurse...
+        return typechecker_from_rosfield_type(slot_type)
     elif isinstance(slot_type, six.string_types) and slot_type.endswith('[]'):  # we cannot avoid having this here since we can add '[]' to a custom message type
         # we need to recurse...
-        typechecker = typechecker_from_rosfield_type(slot_type[:-2])
-        return TypeChecker(
-            Array(typechecker.sanitizer),
-            Array(typechecker.accepter)
-        )
+        return typechecker_from_rosfield_type(slot_type)
     else:  # custom message type  # TODO confirm instance of genpy.Message ?
         # We accept the message python type, or the ros string description
         if isinstance(slot_type, six.string_types):
@@ -86,27 +83,23 @@ def typechecker_from_rosfield_type(slot_type):
 
         # we need to recurse on slots
         slots = {
-            f: typechecker_from_rosfield_type(ft)
+            f: typechecker_from_rosfield_opttype(ft)
             for f, ft in zip(rosmsg_type.__slots__, rosmsg_type._slot_types)
-            # TODO : filter special fields ?
+            if not f in ['_optional_initialized_', 'initialized_']  # filtering special fields
         }
 
-        def sanitizer(value):  # we do not need default value here, no optional nested
-            return rosmsg_type(**{
+        def sanitizer(value=None):  # default value to handle the optional nested case
+            slots_dict = {
                 k: tc(getattr(value, k)) if value else tc()  # we pass a subvalue to the sanitizer of the member type
                 for k, tc in slots.items()
-            })
-        # TODO : to be able to use this from __init__ in messages types, we need to return only the dictionnary.
+                if not k in ['_optional_initialized_', 'initialized_']  # filtering special fields
+            }
+            #slots_dict.update({'_optional_initialized_': value is not None}) # we set optional init field to true only if we have a value
+            # FOR NOW we let the constructor itself handle that.
+            # Until we manage it here for any kind of value, accepter needs to take in args and kwargs...
+            return rosmsg_type(**slots_dict)
 
         return TypeChecker(Sanitizer(sanitizer), Accepter(slots))
-
-rosfield_typechecker.update({
-    # for time and duration we want to extract the slots
-    # we want genpy to get the list of slots (rospy.Time doesnt have it)
-    'time': typechecker_from_rosfield_type(genpy.Time),
-    'duration': typechecker_from_rosfield_type(genpy.Duration),
-})
-
 
 
 # TODO : common message types :

@@ -13,6 +13,8 @@ from pyros_msgs.common import (
     TypeChecker
 )
 
+from .ros_mappings import typechecker_from_rosfield_opttype
+
 
 def duck_punch(msg_mod, opt_slot_list):
     """
@@ -32,8 +34,9 @@ def duck_punch(msg_mod, opt_slot_list):
         # We build our own type schema here from our slots
         # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
         slotsdict = {
-            s: typechecker_from_rosfield_type(srt)
+            s: typechecker_from_rosfield_opttype(srt)
             for s, srt in zip(msg_mod.__slots__, msg_mod._slot_types)
+            if s not in ['initialized_']
             }
 
         # TODO : use accepted typeschema to filter args
@@ -51,7 +54,7 @@ def duck_punch(msg_mod, opt_slot_list):
             except TypeCheckerException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
-                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepted_types}".format(**locals()))
+                raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepter}".format(**locals()))
 
         # By now the kwds is filled up with values
         # the parent init will do the usual ROS message setup.

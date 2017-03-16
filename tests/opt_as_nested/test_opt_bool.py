@@ -25,8 +25,26 @@ import nose
 pyros_msgs.opt_as_nested.duck_punch(test_opt_bool_as_nested, ['data'])
 
 
+def test_init_rosdatadata():
+    """Testing that a proper data is stored as is"""
+    optmsg = test_opt_bool_as_nested(data=opt_bool(data=True))
+    assert optmsg.data == opt_bool(data=True)
+
+    optmsg = test_opt_bool_as_nested(data=opt_bool(data=False))
+    assert optmsg.data == opt_bool(data=False)
+
+
+def test_init_rosdata():
+    """Testing that a proper data is stored as is"""
+    optmsg = test_opt_bool_as_nested(data=opt_bool(True))
+    assert optmsg.data == opt_bool(True)
+
+    optmsg = test_opt_bool_as_nested(data=opt_bool(False))
+    assert optmsg.data == opt_bool(False)
+
+
 def test_init_data():
-    # Same with an actual message containing this field
+    """Testing that an implicitely convertible data is stored as expected"""
     optmsg = test_opt_bool_as_nested(data=True)
     assert optmsg.data == opt_bool(True)
 
