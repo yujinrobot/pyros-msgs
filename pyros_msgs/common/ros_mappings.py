@@ -91,7 +91,7 @@ def typechecker_from_rosfield_type(slot_type):
             # TODO : filter special fields ?
         }
 
-        def sanitizer(value):  # we do not need default value here, no optional nested
+        def sanitizer(value=None):  # we do not need default value here, no optional nested
             return rosmsg_type(**{
                 k: tc(getattr(value, k)) if value else tc()  # we pass a subvalue to the sanitizer of the member type
                 for k, tc in slots.items()
