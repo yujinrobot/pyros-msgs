@@ -18,9 +18,9 @@ from hypothesis import given, example, settings, Verbosity, HealthCheck
 import hypothesis.strategies as st
 
 
-@given(st.builds(std_msgs.Float32, data=st.floats()))
+@given(st.builds(std_msgs.Float32, data=st.floats(min_value=-3.4028235e+38, max_value=3.4028235e+38)))  # limits for IEEE 754 binary32 floats
 @settings(verbosity=Verbosity.verbose, timeout=10, suppress_health_check=[HealthCheck.too_slow])
-def test_typechecker_serialize_deserialize_inverse(value):
+def test_typechecker_serialize_deserialize_float32_inverse(value):
     """"""
 
     # sending
@@ -41,7 +41,7 @@ def test_typechecker_serialize_deserialize_inverse(value):
 
 @given(st.builds(std_msgs.Time, data=st.builds(genpy.Time, secs=st.integers(min_value=0, max_value=4294967295))))
 @settings(verbosity=Verbosity.verbose, timeout=10, suppress_health_check=[HealthCheck.too_slow])
-def test_typechecker_serialize_deserialize_inverse(value):
+def test_typechecker_serialize_deserialize_time_inverse(value):
     """"""
 
     # sending
@@ -55,3 +55,4 @@ def test_typechecker_serialize_deserialize_inverse(value):
     received.deserialize(serialized)
 
     assert received == value
+

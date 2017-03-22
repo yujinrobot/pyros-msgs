@@ -128,6 +128,8 @@ def duck_punch(msg_mod):
 # default data values extracted from genpy.generator:default_value()
 #
 
+# TODO : get rid of these. We shouldnt make these message any special.
+# Our logic of adding _initialized_optional field should make any message type optional in any nesting message type.
 for msg_int_mod in [
     opt_int8, opt_int16, opt_int32, opt_int64,
     opt_uint8, opt_uint16, opt_uint32, opt_uint64,

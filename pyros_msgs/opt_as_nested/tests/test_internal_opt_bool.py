@@ -58,7 +58,7 @@ def test_init_excepts_internal_data():
     with nose.tools.assert_raises(AttributeError) as cm:
         pyros_msgs.opt_as_nested.opt_bool(data=42)
     assert isinstance(cm.exception, AttributeError)
-    assert cm.exception.message == "42 does not match the accepted type schema for 'data' : <type 'bool'>"
+    assert cm.exception.message == "42 does not match the accepted type schema for 'data' : Accepter from <type 'bool'>"
 
 
 # Just in case we run this directly

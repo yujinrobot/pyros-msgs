@@ -7,8 +7,8 @@ import sys
 
 try:
     import genpy
-    import pyros_msgs
-    from pyros_msgs.opt_as_nested import opt_bool, test_opt_bool_as_nested  # This will duck punch the generated message type.
+    import pyros_msgs.opt_as_nested  # This will duck punch the standard message type initialization code.
+    from pyros_msgs.msg import opt_bool, test_opt_bool_as_nested  # This will duck punch the generated message type.
 
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)

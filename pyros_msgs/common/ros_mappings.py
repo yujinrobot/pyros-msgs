@@ -103,8 +103,26 @@ def typechecker_from_rosfield_type(slot_type):
 rosfield_typechecker.update({
     # for time and duration we want to extract the slots
     # we want genpy to get the list of slots (rospy.Time doesnt have it)
-    'time': typechecker_from_rosfield_type(genpy.Time),
-    'duration': typechecker_from_rosfield_type(genpy.Duration),
+    # NOTE : slots_types in genpy indicate int32 which is wrong for Time, but correct for Duration
+    # Until this is fixed we will treat Time and Duration as "special" like genpy does...
+    'time': TypeChecker(
+        Sanitizer(lambda v=None:
+                  genpy.Time(secs=rosfield_typechecker.get('uint32')(v.secs),
+                             nsecs=rosfield_typechecker.get('uint32')(v.nsecs)) if v is not None else genpy.Time()
+                  ),
+        Accepter({'secs': rosfield_typechecker.get('uint32'),
+                  'nsecs': rosfield_typechecker.get('uint32')
+                  })
+    ),
+    'duration': TypeChecker(
+        Sanitizer(lambda v=None:
+                  genpy.Duration(secs=rosfield_typechecker.get('int32')(v.secs),
+                             nsecs=rosfield_typechecker.get('int32')(v.nsecs)) if v is not None else genpy.Duration()
+                  ),
+        Accepter({'secs': rosfield_typechecker.get('int32'),
+                  'nsecs': rosfield_typechecker.get('int32')
+                  })
+    ),
 })
 
 

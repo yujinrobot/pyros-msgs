@@ -10,24 +10,17 @@ This is useful if you want to express an optional field in a message without any
 When importing this module, a set of ros messages will be imported, and duck punched to make default value a "non initialized value"
 """
 
-# Getting all msgs first (since our __file__ is set to ros generated __init__)
-
 try:
-    from pyros_msgs.msg import *
+    import pyros_utils
 
-except ImportError as ie:
-    # if pyros_msgs.msg not found, it s likely we are not interpreting this from devel/.
-    # importing our generated messages dynamically, using namespace packages (same as genpy generated __init__.py).
-    # Ref : http://stackoverflow.com/a/27586272/4006172
-    from pkgutil import extend_path
-    __path__ = extend_path(__path__, __name__)
-    # TODO : put this in pyros-setup, catkin_pip, pyros_utils, depending on what seems the better fit...
-    # Note that this requires sys.path to already be setup.
-    # It is a second step for ROS packages, after PYTHONPATH configuration...
-    from pyros_msgs.msg import *
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us ot the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import pyros_utils
 
 # Fixing out __file__ for proper python behavior
-import pyros_utils
 
 # Getting actual filepath (not ros generated init)
 # detecting and fixing ROS generated __init__.py behavior when importing this package
