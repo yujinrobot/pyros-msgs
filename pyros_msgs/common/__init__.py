@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 """
-this pacakge determine mappings between ros native types and yros optional types.
+this package determine mappings between ros native types and yros optional types.
 It is extensively documented and tested.
 
 you are encourages to run doctest on it :
@@ -20,6 +20,8 @@ from .typechecker import (
     Accepter, Sanitizer, Array, Any, MinMax, CodePoint,
     TypeCheckerException,
     TypeChecker,
+    make_typechecker_field_optional,
+    make_typechecker_field_hidden,
 )
 
 from .ros_mappings import (

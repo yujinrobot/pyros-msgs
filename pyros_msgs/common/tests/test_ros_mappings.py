@@ -29,7 +29,7 @@ from pyros_msgs.common.typechecker import (
 from pyros_msgs.common.ros_mappings import typechecker_from_rosfield_type
 
 
-from hypothesis import given, example, settings, Verbosity, HealthCheck
+from hypothesis import given, example, settings, Verbosity
 import hypothesis.strategies as st
 
 
@@ -99,7 +99,7 @@ pyros_msgs_types_strat_broken = {
 
 # We need a composite strategy to link slot type and slot value
 @st.composite
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def msg_type_and_value(draw, msgs_type_st):
     msg_type = draw(st.sampled_from(msgs_type_st))
     msg_value = draw(msgs_type_st.get(msg_type))
@@ -107,7 +107,7 @@ def msg_type_and_value(draw, msgs_type_st):
 
 
 @given(msg_type_and_value(std_msgs_types_strat_ok))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_serialize_deserialize_inverse(msg_type_and_ok_value):
     """"""
     tc = typechecker_from_rosfield_type(msg_type_and_ok_value[0])
@@ -132,7 +132,7 @@ def test_typechecker_serialize_deserialize_inverse(msg_type_and_ok_value):
 
 
 @given(msg_type_and_value(std_msgs_types_strat_broken))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_typechecker_prevent_broken_values(msg_type_and_bad_value):
     tc = typechecker_from_rosfield_type(msg_type_and_bad_value[0])
 

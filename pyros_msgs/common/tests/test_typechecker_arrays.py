@@ -24,7 +24,7 @@ from pyros_msgs.common.typechecker import (
 )
 
 import math
-from hypothesis import given, example, assume, settings, Verbosity, HealthCheck
+from hypothesis import given, example, assume, settings, Verbosity
 import hypothesis.strategies as st
 
 from . import (
@@ -41,7 +41,7 @@ from . import (
 
 
 @given(proper_list_strategy_selector(boolarray_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=0.1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=0.1)
 def test_boolarray_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -55,7 +55,7 @@ def test_boolarray_typechecker_maintains_equality(value):
     proper_basic_strategy_selector(bool_type_checker),  # proper value not in list
     bad_basic_strategy_selector(bool_type_checker),  # just a bad value
 ))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_boolarray_typechecker_breaks_on_bad_number_values(value):
     """
     Verify that value is not accepted
@@ -66,7 +66,7 @@ def test_boolarray_typechecker_breaks_on_bad_number_values(value):
 
 
 @given(proper_list_strategy_selector(intarray_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_intarray_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -80,7 +80,7 @@ def test_intarray_typechecker_maintains_equality(value):
     proper_basic_strategy_selector(integer_type_checker),  # proper value not in list
     bad_basic_strategy_selector(integer_type_checker),  # just a bad value
 ))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_intarray_typechecker_breaks_on_bad_number_values(value):
     """
     Verify that value is not accepted
@@ -91,7 +91,7 @@ def test_intarray_typechecker_breaks_on_bad_number_values(value):
 
 
 @given(proper_list_strategy_selector(floatarray_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_floatarray_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -105,7 +105,7 @@ def test_floatarray_typechecker_maintains_equality(value):
     proper_basic_strategy_selector(float_type_checker),  # proper value not in list
     bad_basic_strategy_selector(float_type_checker),  # bad value not in list
 ))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_floatarray_typechecker_breaks_on_bad_number_values(value):
     """
     Verify that value is not accepted
@@ -116,7 +116,7 @@ def test_floatarray_typechecker_breaks_on_bad_number_values(value):
 
 
 @given(proper_list_strategy_selector(stringarray_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_stringarray_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -130,7 +130,7 @@ def test_stringarray_typechecker_maintains_equality(value):
     proper_basic_strategy_selector(string_type_checker),  # proper value not in list
     bad_basic_strategy_selector(string_type_checker),  # bad value not in list
 ))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_stringarray_typechecker_breaks_on_bad_number_values(value):
     """
     Verify that value is not accepted

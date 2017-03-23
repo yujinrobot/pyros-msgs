@@ -23,7 +23,7 @@ from pyros_msgs.common.typechecker import (
 )
 
 import math
-from hypothesis import given, example, assume, settings, Verbosity, HealthCheck
+from hypothesis import given, example, assume, settings, Verbosity
 import hypothesis.strategies as st
 
 # Defining a strategy for our typeschemas.
@@ -145,7 +145,7 @@ def build_instance(draw, fields_dict, strat_selector):
 
 
 @given(build_instance(custom_fields_tc, proper_strategy_selector))
-@settings(verbosity=Verbosity.verbose, timeout=5, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=5)
 def test_maintains_equality(inst_type_checker_tuple):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value

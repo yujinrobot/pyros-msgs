@@ -44,6 +44,7 @@ import six
 # to get long for py2 and int for py3
 six_long = six.integer_types[-1]
 
+import copy
 
 def maybe_list(l):
     """Return list of one element if ``l`` is a scalar."""
@@ -458,3 +459,16 @@ def make_typechecker_from_prototype(inst, field_map=None):
 
 # TODO : use type hints instead of instantiation
 # def make_typechecker_from_class(cls, field_map=None):
+
+
+def make_typechecker_field_optional(typechecker):
+    """Builds a new type checker, which is the same as the type checker passed as argument, except that None is now accepted"""
+    # copy on write, since multiple fields can share the same typechecker, but we want to mutate only this one
+    return TypeChecker(typechecker.sanitizer, Any(Accepter(None), typechecker.accepter))
+
+
+
+def make_typechecker_field_hidden(typechecker):
+    """Builds a new type checker, which is the same as the type checker passed as argument, except that None is now accepted"""
+    # copy on write, since multiple fields can share the same typechecker, but we want to mutate only this one
+    return TypeChecker(typechecker.sanitizer, Accepter(None))

@@ -24,7 +24,7 @@ import sys
 import math
 import numpy  # only for nextafter
 import pytest
-from hypothesis import given, example, assume, settings, Verbosity, HealthCheck
+from hypothesis import given, example, assume, settings, Verbosity
 import hypothesis.strategies as st
 
 from . import (
@@ -38,7 +38,7 @@ from . import (
 
 
 @given(proper_basic_strategy_selector(bool_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=0.1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=0.1)
 def test_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -48,7 +48,7 @@ def test_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(bool_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_breaks_on_bad_values(value):
     """
     Verify that value is not accepted
@@ -59,7 +59,7 @@ def test_breaks_on_bad_values(value):
 
 
 @given(proper_basic_strategy_selector(integer_type_checker))  # where we learn that in python booleans are ints...
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_any_accepter_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -69,7 +69,7 @@ def test_typechecker_with_any_accepter_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(integer_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_any_accepter_breaks_on_bad_values(value):
     """
     Verify that value is not accepted
@@ -80,7 +80,7 @@ def test_typechecker_with_any_accepter_breaks_on_bad_values(value):
 
 
 @given(proper_basic_strategy_selector(integer_type_checker_min_max))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_minmax_accepter_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -90,7 +90,7 @@ def test_typechecker_with_minmax_accepter_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(integer_type_checker_min_max))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_minmax_accepter_breaks_on_bad_values(value):
     """
     Verify that value is not accepted
@@ -101,7 +101,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_values(value):
 
 
 @given(proper_basic_strategy_selector(float_type_checker))  # where we learn that in python
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -113,7 +113,7 @@ def test_typechecker_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(float_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_breaks_on_bad_values(value):
     """
     Verify that value is not accepted
@@ -124,7 +124,7 @@ def test_typechecker_breaks_on_bad_values(value):
 
 
 @given(proper_basic_strategy_selector(float_type_checker_min_max))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_minmax_accepter_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -134,7 +134,7 @@ def test_typechecker_with_minmax_accepter_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(float_type_checker_min_max))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_minmax_accepter_breaks_on_bad_nonfloat_values(value):
     """
     Verify that value is not accepted
@@ -147,7 +147,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_nonfloat_values(value):
 # Separate test because of float arithemtics...
 # TODO FIXME
 @given(bad_basic_strategy_selector(float_type_checker_min_max))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_with_minmax_accepter_breaks_on_bad_float_values(value):
     """
     Verify that value is not accepted
@@ -158,7 +158,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_float_values(value):
 
 
 @given(proper_basic_strategy_selector(string_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_maintains_equality(value):
     """
     Verify that value is accepted and the sanitized value is "equal" to original value
@@ -168,7 +168,7 @@ def test_typechecker_maintains_equality(value):
 
 
 @given(bad_basic_strategy_selector(string_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_breaks_on_bad_number_values(value):
     """
     Verify that value is not accepted
@@ -180,7 +180,7 @@ def test_typechecker_breaks_on_bad_number_values(value):
 
 # Separate test for unicode fanciness
 @given(bad_basic_strategy_selector(string_type_checker))
-@settings(verbosity=Verbosity.verbose, timeout=1, suppress_health_check=[HealthCheck.too_slow])
+@settings(verbosity=Verbosity.verbose, timeout=1)
 def test_typechecker_breaks_on_bad_text_values(value):
     """
     Verify that value is not accepted

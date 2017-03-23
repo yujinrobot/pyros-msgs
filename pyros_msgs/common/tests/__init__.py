@@ -24,7 +24,7 @@ from pyros_msgs.common.typechecker import (
 )
 
 import math
-from hypothesis import given, example, assume, settings, Verbosity, HealthCheck
+from hypothesis import given, example, assume, settings, Verbosity
 import hypothesis.strategies as st
 
 
