@@ -25,21 +25,7 @@ add_message_files(
   DIRECTORY
     msg/opt_as_nested
   FILES
-    opt_bool.msg
-    opt_int8.msg
-    opt_int16.msg
-    opt_int32.msg
-    opt_int64.msg
-    opt_uint8.msg
-    opt_uint16.msg
-    opt_uint32.msg
-    opt_uint64.msg
-    opt_float32.msg
-    opt_float64.msg
-    opt_string.msg
-    opt_time.msg
-    opt_duration.msg
-    opt_header.msg
+    OptionalFields.msg
 
     # For testing only
     test_opt_bool_as_nested.msg
@@ -84,7 +70,7 @@ catkin_pip_package(pyros_msgs)
 #######
 
 if (CATKIN_ENABLE_TESTING)
-  catkin_add_pytests(tests)
+  #catkin_add_pytests(tests)
 endif()
 
 

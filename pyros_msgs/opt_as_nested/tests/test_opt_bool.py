@@ -25,55 +25,43 @@ import nose
 pyros_msgs.opt_as_nested.duck_punch(test_opt_bool_as_nested, ['data'])
 
 
-def test_init_rosdatadata():
-    """Testing that a proper data is stored as is"""
-    optmsg = test_opt_bool_as_nested(data=opt_bool(data=True))
-    assert optmsg.data == opt_bool(data=True)
-
-    optmsg = test_opt_bool_as_nested(data=opt_bool(data=False))
-    assert optmsg.data == opt_bool(data=False)
 
 
-def test_init_rosdata():
-    """Testing that a proper data is stored as is"""
-    optmsg = test_opt_bool_as_nested(data=opt_bool(True))
-    assert optmsg.data == opt_bool(True)
-
-    optmsg = test_opt_bool_as_nested(data=opt_bool(False))
-    assert optmsg.data == opt_bool(False)
+import hypothesis
+import hypothesis.strategies as st
 
 
-def test_init_data():
-    """Testing that an implicitely convertible data is stored as expected"""
-    optmsg = test_opt_bool_as_nested(data=True)
-    assert optmsg.data == opt_bool(True)
-
-    optmsg = test_opt_bool_as_nested(data=False)
-    assert optmsg.data == opt_bool(False)
+@hypothesis.given(st.one_of(st.none(), st.booleans()))
+def test_init_none_data(data):
+    """Testing that a opt field can get any bool or none"""
+    msg = test_opt_bool_as_nested(data=data)
+    assert msg.data == data
 
 
-def test_init_raw():
-    # Same with an actual message containing this field
-    optmsg = test_opt_bool_as_nested(True)
-    assert optmsg.data == opt_bool(True)
-
-    optmsg = test_opt_bool_as_nested(False)
-    assert optmsg.data == opt_bool(False)
+@hypothesis.given(st.one_of(st.none(), st.booleans()))
+def test_init_raw(data):
+    """Testing storing of data without specifying the field"""
+    msg = test_opt_bool_as_nested(data)
+    assert msg.data == data
 
 
 def test_init_default():
-    # Same with an actual message containing this field
-    optmsg = test_opt_bool_as_nested()
-    assert optmsg.data == opt_bool()
-    assert optmsg.data != opt_bool(True)
-    assert optmsg.data != opt_bool(False)
+    """Testing default value"""
+    msg = test_opt_bool_as_nested()
+    assert msg.data is None
 
 
-def test_init_excepts():
+# TODO : all possible (from ros_mappings) except booleans
+@hypothesis.given(hypothesis.strategies.one_of(
+    hypothesis.strategies.integers(),
+    hypothesis.strategies.floats(),
+))
+def test_wrong_init_except(data):
+    """Testing we except when types do not match"""
     with nose.tools.assert_raises(AttributeError) as cm:
-        test_opt_bool_as_nested(data=42)
+        test_opt_bool_as_nested(data)
     assert isinstance(cm.exception, AttributeError)
-    assert cm.exception.message == "42 does not match the accepted type schema for 'data' : (<type 'bool'>,)"
+    assert "does not match the accepted type schema for 'data' : Any of set" in cm.exception.message
 
 
 # Just in case we run this directly

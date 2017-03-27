@@ -31,39 +31,8 @@ if ros_exec:
 
 # Now we can import packages relatively
 
-from .nested import (
-    #opt_empty,
-    opt_bool,
-    opt_int8,
-    opt_int16,
-    opt_int32,
-    opt_int64,
-    opt_uint8,
-    opt_uint16,
-    opt_uint32,
-    opt_uint64,
-    opt_float32,
-    opt_string,
-    opt_time,
-    opt_duration,
-    opt_header,
-)
-
-
 from .opt_as_nested import duck_punch
 
 __all__ = [
-    'opt_empty',
-
-    'opt_bool',
-    'opt_int8', 'opt_int16', 'opt_int32', 'opt_int64',
-    'opt_uint8', 'opt_uint16', 'opt_uint32', 'opt_uint64',
-    'opt_float32', 'opt_float64',
-    'opt_string',
-
-    'opt_time',
-    'opt_duration',
-    'opt_header',
-
     'duck_punch',
 ]

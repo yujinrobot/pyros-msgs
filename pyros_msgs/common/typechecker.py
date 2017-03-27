@@ -472,3 +472,6 @@ def make_typechecker_field_hidden(typechecker):
     """Builds a new type checker, which is the same as the type checker passed as argument, except that None is now accepted"""
     # copy on write, since multiple fields can share the same typechecker, but we want to mutate only this one
     return TypeChecker(typechecker.sanitizer, Accepter(None))
+
+
+# TODO : function to modify a message type __init__ method

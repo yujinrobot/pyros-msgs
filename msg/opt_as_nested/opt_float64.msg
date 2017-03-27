@@ -1,2 +1,0 @@
-bool initialized_
-float64 data

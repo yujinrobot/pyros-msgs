@@ -1,2 +1,0 @@
-bool initialized_
-uint32 data

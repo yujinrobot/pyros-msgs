@@ -194,9 +194,9 @@ setuptools.setup(name='pyros_common',
     license='MIT',
     packages=[
         'pyros_msgs',
-        'pyros_msgs.common',
-        'pyros_msgs.opt_as_array',
-        'pyros_msgs.opt_as_nested',
+        'pyros_msgs.common', 'pyros_msgs.common.tests',
+        'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
+        'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
     ],
     namespace_packages=['pyros_msgs'],
     # this is better than using package data ( since behavior is a bit different from distutils... )
