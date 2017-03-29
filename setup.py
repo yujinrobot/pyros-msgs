@@ -202,6 +202,10 @@ setuptools.setup(name='pyros_common',
     # this is better than using package data ( since behavior is a bit different from distutils... )
     include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
+    install_requires=[
+        # this is needed as install dependency since we embed tests in the package.
+        'hypothesis>=3.0.1'  # to target xenial LTS version
+    ],
     cmdclass={
         'rosdevelop': RosDevelopCommand,
         'prepare_release': PrepareReleaseCommand,

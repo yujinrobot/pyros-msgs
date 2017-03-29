@@ -70,7 +70,9 @@ catkin_pip_package(pyros_msgs)
 #######
 
 if (CATKIN_ENABLE_TESTING)
-  #catkin_add_pytests(tests)
+  catkin_add_pytests(pyros_msgs/common/tests)
+  catkin_add_pytests(pyros_msgs/opt_as_array/tests)
+  catkin_add_pytests(pyros_msgs/opt_as_nested/tests)
 endif()
 
 
