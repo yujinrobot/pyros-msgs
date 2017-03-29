@@ -30,3 +30,38 @@ if ros_exec:
     __file__ = ros_exec
 
 from .opt_as_array import duck_punch
+
+
+# Importing here the messages to patch them, so they can be used by someone else already patched
+from pyros_msgs.msg import (
+    test_opt_bool_as_array,
+    test_opt_int8_as_array,
+    test_opt_int16_as_array,
+    test_opt_int32_as_array,
+    test_opt_int64_as_array,
+    test_opt_uint8_as_array,
+    test_opt_uint16_as_array,
+    test_opt_uint32_as_array,
+    test_opt_uint64_as_array,
+    test_opt_float32_as_array,
+    test_opt_float64_as_array,
+    test_opt_string_as_array,
+    test_opt_time_as_array,
+    test_opt_duration_as_array,
+)
+
+# patching (need to know the field name)
+duck_punch(test_opt_bool_as_array, ['data'])
+duck_punch(test_opt_int8_as_array, ['data'])
+duck_punch(test_opt_int16_as_array, ['data'])
+duck_punch(test_opt_int32_as_array, ['data'])
+duck_punch(test_opt_int64_as_array, ['data'])
+duck_punch(test_opt_uint8_as_array, ['data'])
+duck_punch(test_opt_uint16_as_array, ['data'])
+duck_punch(test_opt_uint32_as_array, ['data'])
+duck_punch(test_opt_uint64_as_array, ['data'])
+duck_punch(test_opt_float32_as_array, ['data'])
+duck_punch(test_opt_float64_as_array, ['data'])
+duck_punch(test_opt_string_as_array, ['data'])
+duck_punch(test_opt_time_as_array, ['data'])
+duck_punch(test_opt_duration_as_array, ['data'])
