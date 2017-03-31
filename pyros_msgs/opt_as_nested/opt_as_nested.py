@@ -6,7 +6,7 @@ import collections
 import genpy
 import six
 import std_msgs.msg
-from pyros_msgs.common import (
+from pyros_msgs.typecheck import (
     six_long,
     TypeCheckerException,
     typechecker_from_rosfield_type,
