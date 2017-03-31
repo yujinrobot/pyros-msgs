@@ -194,7 +194,7 @@ setuptools.setup(name='pyros_common',
     license='MIT',
     packages=[
         'pyros_msgs',
-        'pyros_msgs.common', 'pyros_msgs.common.tests',
+        'pyros_msgs.typecheck', 'pyros_msgs.typecheck.tests',
         'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
         'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
     ],

@@ -14,7 +14,7 @@ except ImportError:
 
 import six
 
-from pyros_msgs.common.typechecker import (
+from pyros_msgs.typecheck.typechecker import (
     six_long,
     maybe_list,
     maybe_tuple,
@@ -63,7 +63,8 @@ def proper_basic_strategy_selector(type_checker):
     elif type_checker is float_type_checker_min_max:
         el_strat = st.floats(min_value=float_min_bound, max_value=float_max_bound)
     elif type_checker is string_type_checker:
-        el_strat = st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))
+        #el_strat = st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))
+        el_strat = st.text(alphabet=st.characters(max_codepoint=127))  # since binary can break hypothesis reporting
     else:
         raise RuntimeError("Unknown type checker, cannot deduce proper strategy.")
     return el_strat
@@ -77,7 +78,8 @@ def proper_list_strategy_selector(type_checker):
     elif type_checker is floatarray_type_checker:  # TODO : check how nan and inf behave...
         el_strat = st.floats(min_value=float_min_bound, max_value=float_max_bound)
     elif type_checker is stringarray_type_checker:
-        el_strat = st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))
+        #el_strat = st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))
+        el_strat = st.text(alphabet=st.characters(max_codepoint=127))  # since binary can break hypothesis reporting
     else:
         raise RuntimeError("Unknown type checker, cannot deduce proper strategy.")
     return st.lists(el_strat)

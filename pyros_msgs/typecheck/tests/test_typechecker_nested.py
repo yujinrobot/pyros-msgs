@@ -13,7 +13,7 @@ except ImportError:
 
 import six
 
-from pyros_msgs.common.typechecker import (
+from pyros_msgs.typecheck.typechecker import (
     six_long,
     maybe_list,
     maybe_tuple,
@@ -104,8 +104,10 @@ def build_instance_strat(fields_dict, strat_selector):
             # Because floats nan and inf are special...
             if isinstance(getattr(self, k), float) and isinstance(getattr(other, k), float):
                 eq = eq and (
-                  math.isnan(getattr(self, k)) and math.isnan(getattr(self, k))
-                ) or math.isinf(getattr(self, k)) and math.isinf(getattr(self, k))
+                  getattr(self, k) == getattr(self, k) or  # use "isclose() type of method instead ?"
+                  (math.isnan(getattr(self, k)) and math.isnan(getattr(self, k))) or
+                  (math.isinf(getattr(self, k)) and math.isinf(getattr(self, k)))
+                )
             else:
                 eq = eq and getattr(self, k) == getattr(other, k)
         return eq

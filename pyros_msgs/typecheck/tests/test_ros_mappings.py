@@ -17,7 +17,7 @@ except ImportError:
 
 import six
 
-from pyros_msgs.common.typechecker import (
+from pyros_msgs.typecheck.typechecker import (
     six_long,
     maybe_list,
     maybe_tuple,
@@ -26,7 +26,7 @@ from pyros_msgs.common.typechecker import (
     TypeCheckerException,
 )
 
-from pyros_msgs.common.ros_mappings import typechecker_from_rosfield_type
+from pyros_msgs.typecheck.ros_mappings import typechecker_from_rosfield_type
 
 
 from hypothesis import given, example, settings, Verbosity
@@ -66,7 +66,8 @@ std_msgs_types_strat_ok = {
     # TMP : seems we have some problems with float arithmetic between numpy and hypothesis...
     #'std_msgs/Float32': st.builds(std_msgs.Float32, data=st.floats(min_value=-3.4028235e+38, max_value=3.4028235e+38)),
     #'std_msgs/Float64': st.builds(std_msgs.Float64, data=st.floats(min_value=-1.7976931348623157e+308, max_value=1.7976931348623157e+308, )),
-    'std_msgs/String': st.builds(std_msgs.String, data=st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))),
+    #'std_msgs/String': st.builds(std_msgs.String, data=st.one_of(st.binary(), st.text(alphabet=st.characters(max_codepoint=127)))),
+    'std_msgs/String': st.builds(std_msgs.String, data=st.text(alphabet=st.characters(max_codepoint=127))),  # binary can break hypothesis reporting
     # CAREFUL : we need to avoid having nsecs making our secs overflow after canonization from __init__
     'std_msgs/Time': st.builds(std_msgs.Time, data=st.builds(genpy.Time, secs=st.integers(min_value=0, max_value=4294967295 -3), nsecs=st.integers(min_value=0, max_value=4294967295))),
     'std_msgs/Duration': st.builds(std_msgs.Duration, data=st.builds(genpy.Duration, secs=st.integers(min_value=-2147483648 +1, max_value=2147483647 -1), nsecs=st.integers(min_value=-2147483648, max_value=2147483647))),

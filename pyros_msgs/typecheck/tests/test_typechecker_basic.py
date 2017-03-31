@@ -11,7 +11,7 @@ except ImportError:
 
 import six
 
-from pyros_msgs.common.typechecker import (
+from pyros_msgs.typecheck.typechecker import (
     six_long,
     maybe_list,
     maybe_tuple,

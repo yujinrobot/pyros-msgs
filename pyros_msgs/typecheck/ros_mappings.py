@@ -16,7 +16,7 @@ except ImportError:
 
 import six
 
-from pyros_msgs.common import (
+from pyros_msgs.typecheck import (
     six_long,
     Accepter, Sanitizer, Array, Any, MinMax, CodePoint,
     TypeChecker,
