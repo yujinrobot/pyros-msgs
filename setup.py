@@ -7,7 +7,7 @@ import tempfile
 import setuptools
 
 # Ref : https://packaging.python.org/single_source_version/#single-sourcing-the-version
-with open('pyros_msgs/common/_version.py') as vf:
+with open('pyros_msgs/typecheck/_version.py') as vf:
     exec(vf.read())
 
 # Best Flow :
@@ -44,7 +44,7 @@ class PrepareReleaseCommand(setuptools.Command):
         # TODO :
         # $ gitchangelog >CHANGELOG.rst
         # change version in code and changelog
-        subprocess.check_call("git commit CHANGELOG.rst pyros_common/_version.py -m 'v{0}'".format(__version__), shell=True)
+        subprocess.check_call("git commit CHANGELOG.rst pyros_msgs/typecheck/_version.py -m 'v{0}'".format(__version__), shell=True)
         subprocess.check_call("git push", shell=True)
 
         print("You should verify travis checks, and you can publish this release with :")
@@ -164,7 +164,7 @@ class RosDevelopCommand(setuptools.Command):
 
 class ROSPublishCommand(setuptools.Command):
     """Command to release this package to Pypi"""
-    description = "releases pyros-common to ROS"
+    description = "releases pyros-msgs to ROS"
     user_options = []
 
     def initialize_options(self):
@@ -181,11 +181,11 @@ class ROSPublishCommand(setuptools.Command):
         subprocess.check_call("git tag -a ros-{0} -m 'version {0} for ROS'".format(__version__), shell=True)
         subprocess.check_call("git push --tags", shell=True)
         # TODO : guess the ROS package name
-        subprocess.check_call("bloom-release --rosdistro indigo --track indigo pyros_common", shell=True)
+        subprocess.check_call("bloom-release --rosdistro indigo --track indigo pyros_msgs", shell=True)
         sys.exit()
 
 
-setuptools.setup(name='pyros_common',
+setuptools.setup(name='pyros_msgs',
     version=__version__,
     description='Pyros messages and services definition',
     url='http://github.com/asmodehn/pyros-msgs',
