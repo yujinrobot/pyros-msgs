@@ -204,6 +204,7 @@ setuptools.setup(name='pyros_msgs',
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
         # this is needed as install dependency since we embed tests in the package.
+        'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'hypothesis>=3.0.1'  # to target xenial LTS version
     ],
     cmdclass={
