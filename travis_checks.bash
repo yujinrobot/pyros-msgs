@@ -30,6 +30,7 @@ elif [ "$ROS_FLOW" == "install" ]; then
     make -j1 install
     source install/setup.bash
     # since the tests are part of the package and installed with it
-    # we can run them
-    py.test pyros_msgs
+    # we can now run them
+    py.test install/lib/python2.7/dist-packages/pyros_msgs
+    # TODO : have a command line program to run self tests
 fi
