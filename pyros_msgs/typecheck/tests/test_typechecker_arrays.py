@@ -137,4 +137,4 @@ def test_stringarray_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         stringarray_type_checker(value)
-    assert "is not accepted by Array of Any of set([Accepter from <type 'str'>, CodePoint [0..127] of Accepter from <type 'unicode'>])" in excinfo.value.message
+    assert "is not accepted by Array of Any of set" in excinfo.value.message
