@@ -40,11 +40,31 @@ class GenerateMsgCommand(setuptools.Command):
 
     def run(self):
         """runner"""
+        import os
 
-        # TODO :
-        # $ gitchangelog >CHANGELOG.rst
-        # change version in code and changelog
+        pyros_msgs_path = os.path.join("pyros_msgs", "msg")
+        if not os.path.exists(pyros_msgs_path):
+            os.makedirs(pyros_msgs_path)
+
+        filelist = [f for f in os.listdir(pyros_msgs_path)]
+        for f in filelist:
+            os.remove(os.path.join(pyros_msgs_path,f))
+
+        # TODO : change that to python code (using pyros-setup)
         subprocess.check_call(". /opt/ros/indigo/setup.sh && /opt/ros/indigo/lib/genpy/genmsg_py.py -p pyros_msgs -Istd_msgs:/opt/ros/indigo/share/std_msgs/msg -o pyros_msgs/msg msg/opt_as_nested/*.msg msg/opt_as_array/*.msg", shell=True)
+
+        filename = '__init__.py'
+        with open(os.path.join(pyros_msgs_path, filename), 'wb') as temp_file:
+            temp_file.write("from __future__ import absolute_import\n\n")
+
+            modulelist = [f for f in os.listdir(pyros_msgs_path) if not f.startswith('__') and not f.endswith('.pyc')]
+            for m in modulelist:
+                assert m.endswith('.py')
+                m_py = m[:-3]  # removing '.py' extension
+                temp_file.write("from .{0} import *\n".format(m_py))
+
+        # Note we have a tricky problem here since the ros distro for our target needs to be installed on the machine packaging this...
+        # But pip packages are supposed to work on any platform, so we might need another way...
 
         print("Check that the messages classes have been generated properly...")
         sys.exit()
@@ -221,6 +241,7 @@ setuptools.setup(name='pyros_msgs',
     license='MIT',
     packages=[
         'pyros_msgs',
+        'pyros_msgs.msg',
         'pyros_msgs.typecheck', 'pyros_msgs.typecheck.tests',
         'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
         'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
