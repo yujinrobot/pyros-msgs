@@ -22,6 +22,33 @@ with open('pyros_msgs/typecheck/_version.py') as vf:
 # TODO : command to retrieve extra ROS stuff from a third party release repo ( for ROS devs ). useful in dev only so maybe "rosdevelop" ? or via catkin_pip ?
 # TODO : command to release to Pip and ROS (bloom) same version one after the other...
 
+# Clean way to add a custom "python setup.py <command>"
+# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
+class GenerateMsgCommand(setuptools.Command):
+    """Command to generate message class"""
+    description = "generate messages for pyros_msgs"
+    user_options = []
+
+    def initialize_options(self):
+        """init options"""
+        # TODO : pass distro path (indigo/jade/etc.)
+        pass
+
+    def finalize_options(self):
+        """finalize options"""
+        pass
+
+    def run(self):
+        """runner"""
+
+        # TODO :
+        # $ gitchangelog >CHANGELOG.rst
+        # change version in code and changelog
+        subprocess.check_call(". /opt/ros/indigo/setup.sh && /opt/ros/indigo/lib/genpy/genmsg_py.py -p pyros_msgs -Istd_msgs:/opt/ros/indigo/share/std_msgs/msg -o pyros_msgs/msg msg/opt_as_nested/*.msg msg/opt_as_array/*.msg", shell=True)
+
+        print("Check that the messages classes have been generated properly...")
+        sys.exit()
+
 
 # Clean way to add a custom "python setup.py <command>"
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
@@ -208,6 +235,7 @@ setuptools.setup(name='pyros_msgs',
         'hypothesis>=3.0.1'  # to target xenial LTS version
     ],
     cmdclass={
+        'generatemsg': GenerateMsgCommand,
         'rosdevelop': RosDevelopCommand,
         'prepare_release': PrepareReleaseCommand,
         'publish': PublishCommand,
