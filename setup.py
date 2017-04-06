@@ -157,7 +157,7 @@ class RosDevelopCommand(setuptools.Command):
         repo_path = tempfile.mkdtemp(prefix='rosdevelop-' + os.path.dirname(__file__))  # TODO get actual package name ?
         print("Getting ROS release repo in {0}...".format(repo_path))
         # TODO : get release repo from ROSdistro
-        rosrelease_repo = git.Repo.clone_from('https://github.com/asmodehn/pyros-rosrelease.git', repo_path)
+        rosrelease_repo = git.Repo.clone_from('https://github.com/asmodehn/pyros-msgs-rosrelease.git', repo_path)
 
         # Reset our working tree to master
         origin = rosrelease_repo.remotes.origin

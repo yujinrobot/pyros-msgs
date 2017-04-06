@@ -1,19 +1,15 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
-# TODO : check all types
+from __future__ import absolute_import, division, print_function
 
 try:
-    import pyros_msgs.opt_as_array  # This will duck punch the standard message type initialization code.
-    from pyros_msgs.opt_as_array import test_opt_bool_as_array  # a message type just for testing
-
+    import rospy  # just checking is ROS environment has been sourced
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
     # We rely on default configuration to point us ot the proper distro
     pyros_setup.configurable_import().configure().activate()
-    import pyros_msgs.opt_as_array
-    from pyros_msgs.opt_as_array import test_opt_bool_as_array  # a message type just for testing
+
+import pyros_msgs.opt_as_array
+from pyros_msgs.msg import test_opt_bool_as_array  # a message type just for testing
 
 # patching (need to know the field name)
 #pyros_msgs.opt_as_array.duck_punch(test_opt_bool_as_array, ['data'])
