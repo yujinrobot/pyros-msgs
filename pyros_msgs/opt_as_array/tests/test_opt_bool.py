@@ -1,24 +1,32 @@
 from __future__ import absolute_import, division, print_function
 
+import os
+
 try:
-    import rospy  # just checking is ROS environment has been sourced
+    import rospy  # just checking if ROS environment has been sourced
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
     # We rely on default configuration to point us ot the proper distro
     pyros_setup.configurable_import().configure().activate()
 
-import pyros_msgs.opt_as_array
-from pyros_msgs.msg import test_opt_bool_as_array  # a message type just for testing
 
+from pyros_msgs.typecheck.ros_genmsg_py import import_msgsrv
+
+# a dynamically generated message type just for testing...
+test_opt_bool_as_array = import_msgsrv(
+    os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_bool_as_array.msg'),
+)
+
+import pyros_msgs.opt_as_array
 # patching (need to know the field name)
-#pyros_msgs.opt_as_array.duck_punch(test_opt_bool_as_array, ['data'])
+pyros_msgs.opt_as_array.duck_punch(test_opt_bool_as_array, ['data'])
 
 import nose
 
 
 import hypothesis
-import hypothesis.strategies as st
+import hypothesis.strategies
 
 
 @hypothesis.given(hypothesis.strategies.lists(hypothesis.strategies.booleans(), max_size=1))
