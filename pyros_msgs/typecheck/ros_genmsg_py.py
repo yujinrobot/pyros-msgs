@@ -111,15 +111,26 @@ def import_msgsrv(msgsrvfile, package=None, dependencies=None):
         msgsrv_pkg = (package + '.gen') if package else 'gen'
         outdir_pkg = (package.__path__ if package and hasattr(package, '__path__') else '') + 'gen'
 
+        print("genmsgsrv_py(msgsrv_files=[{msgsrvfile}], package={msgsrv_pkg}, outdir={outdir_pkg}, includepath={include_path}, initpy=True)".format(**locals()))
         gen_modules = genmsgsrv_py(msgsrv_files=[msgsrvfile], package=msgsrv_pkg, outdir=outdir_pkg, includepath=include_path, initpy=True)
-
+        print(gen_modules)
         for m in gen_modules:
             if m.endswith('.__init__'):  # thisis the package __init__, we should import it
-                mpkg = importlib.import_module(m[:-len('.__init__')])
-                modname = os.path.basename(msgsrvfile)[:-4]
-                if hasattr(mpkg, modname):
-                    return getattr(mpkg, modname)
-        # TODO : doublecheck and fix that API to return the same thing as importlib.import_module returns...
+                mod_name = m[:-len('.__init__')]
+                if mod_name in sys.modules:
+                    # we need to force the reload in case we already have that module loaded (without the newest message)
+                    # TODO : handle python >= 3.4 with importlib.reload()
+                    mod = reload(sys.modules.get(mod_name))
+                else:
+                    mod = importlib.import_module(mod_name)
+                class_name = os.path.basename(msgsrvfile)[:-4]
+                #print(vars(mod))
+                print(class_name)
+                if hasattr(mod, class_name):
+                    return getattr(mod, class_name)
+                else:
+                    raise ImportError("GENERATED module {class_name} not found in package {mod}".format(**locals()))
+        # TODO : doublecheck and fix that API to return the same thing as importlib.import_module returns, for consistency,...
     else:
         raise ImportError("{msgsrvfile} doesnt have the proper .msg or .srv extension.")
 

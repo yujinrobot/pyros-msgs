@@ -1,11 +1,7 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
-import collections
+import pyros_msgs
 
-import genpy
-import six
-import std_msgs.msg
 from pyros_msgs.typecheck import (
     six_long,
     TypeCheckerException,
@@ -15,6 +11,9 @@ from pyros_msgs.typecheck import (
     make_typechecker_field_hidden,
 )
 
+print(pyros_msgs.__path__)
+import sys
+print(sys.path)
 
 from pyros_msgs.msg import OptionalFields
 from .ros_mappings import typechecker_from_rosfield_opttype

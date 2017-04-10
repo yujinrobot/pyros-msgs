@@ -41,7 +41,7 @@ class GenerateMsgCommand(setuptools.Command):
     def run(self):
         """runner"""
         import os
-
+        # TODO : use genmsg_py to do that.
         pyros_msgs_path = os.path.join("pyros_msgs", "msg")
         if not os.path.exists(pyros_msgs_path):
             os.makedirs(pyros_msgs_path)
@@ -241,7 +241,7 @@ setuptools.setup(name='pyros_msgs',
     license='MIT',
     packages=[
         'pyros_msgs',
-        'pyros_msgs.msg',
+        # 'pyros_msgs.msg',  #TODO : generate this for pure python package, in a way that is compatible with catkin (so we can still use catkin_make with this)
         'pyros_msgs.typecheck', 'pyros_msgs.typecheck.tests',
         'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
         'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
@@ -251,6 +251,7 @@ setuptools.setup(name='pyros_msgs',
     include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
+        'pkg-resources>=3.3',  # needed to support namespace package (used for including generated message classes in our package, without relying on ROS trickery)
         # this is needed as install dependency since we embed tests in the package.
         'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...

@@ -23,36 +23,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   DIRECTORY
-    msg/opt_as_nested
+    msg
   FILES
     OptionalFields.msg
-
-    # For testing only
-    test_opt_bool_as_nested.msg
-)
-
-add_message_files(
-  DIRECTORY
-    msg/opt_as_array
-  FILES
-
-    # For testing only
-    test_opt_std_empty_as_array.msg
-    test_opt_bool_as_array.msg
-    test_opt_int8_as_array.msg
-    test_opt_int16_as_array.msg
-    test_opt_int32_as_array.msg
-    test_opt_int64_as_array.msg
-    test_opt_uint8_as_array.msg
-    test_opt_uint16_as_array.msg
-    test_opt_uint32_as_array.msg
-    test_opt_uint64_as_array.msg
-    test_opt_float32_as_array.msg
-    test_opt_float64_as_array.msg
-    test_opt_string_as_array.msg
-    test_opt_time_as_array.msg
-    test_opt_duration_as_array.msg
-    test_opt_header_as_array.msg
 )
 
 generate_messages(DEPENDENCIES std_msgs)
