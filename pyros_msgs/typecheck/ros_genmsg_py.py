@@ -13,6 +13,8 @@ import genpy.generate_initpy
 import genmsg
 import genmsg.command_line
 
+import rospkg
+
 
 # TODO : integrate all that in pyros_setup
 def genros_py(rosfiles, generator, package, outdir, includepath=None, initpy=False):
@@ -27,6 +29,7 @@ def genros_py(rosfiles, generator, package, outdir, includepath=None, initpy=Fal
         except OSError as e:
             if not os.path.exists(outdir):
                 raise
+    # TODO : maybe we dont need this, and that translation should be handled before ?
     search_path = genmsg.command_line.includepath_to_dict(includepath)
     generator.generate_messages(package, rosfiles, outdir, search_path)
 
@@ -88,15 +91,27 @@ def clean_generated_py(path):
         os.remove(os.path.join(path, f))
 
 
-def import_msgsrv(msgsrvfile, package=None):
+def import_msgsrv(msgsrvfile, package=None, dependencies=None):
     # by default we add to current package (careful : it might still be None)
     package = package or __package__
+
+    # by default we have no dependencies
+    dependencies = dependencies or []
+
+    include_path = []
+    for d in dependencies:
+        # get an instance of RosPack with the default search paths
+        rospack = rospkg.RosPack()
+        # get the file path for a dependency
+        dpath = rospack.get_path(d)
+        # we populate include_path
+        include_path.append('{d}:{dpath}/msg'.format(**locals()))
 
     if msgsrvfile.endswith(('.msg', '.srv')):
         msgsrv_pkg = (package + '.gen') if package else 'gen'
         outdir_pkg = (package.__path__ if package and hasattr(package, '__path__') else '') + 'gen'
 
-        gen_modules = genmsgsrv_py(msgsrv_files=[msgsrvfile], package=msgsrv_pkg, outdir=outdir_pkg, initpy=True)
+        gen_modules = genmsgsrv_py(msgsrv_files=[msgsrvfile], package=msgsrv_pkg, outdir=outdir_pkg, includepath=include_path, initpy=True)
 
         for m in gen_modules:
             if m.endswith('.__init__'):  # thisis the package __init__, we should import it
@@ -104,7 +119,7 @@ def import_msgsrv(msgsrvfile, package=None):
                 modname = os.path.basename(msgsrvfile)[:-4]
                 if hasattr(mpkg, modname):
                     return getattr(mpkg, modname)
-
+        # TODO : doublecheck and fix that API to return the same thing as importlib.import_module returns...
     else:
         raise ImportError("{msgsrvfile} doesnt have the proper .msg or .srv extension.")
 
