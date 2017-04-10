@@ -1,20 +1,30 @@
 from __future__ import absolute_import, division, print_function
 
+import os
+
 try:
-    import pyros_msgs.opt_as_array  # This will duck punch the standard message type initialization code.
-    from pyros_msgs.opt_as_array import test_opt_int8_as_array  # a message type just for testing
+    import rospy  # just checking if ROS environment has been sourced
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
     # We rely on default configuration to point us ot the proper distro
     pyros_setup.configurable_import().configure().activate()
-    import pyros_msgs.opt_as_array  # This will duck punch the standard message type initialization code.
-    from pyros_msgs.opt_as_array import test_opt_int8_as_array  # a message type just for testing
+    import rospy  # just checking if ROS environment has been sourced
 
-# patching
-#pyros_msgs.opt_as_array.duck_punch(test_opt_int8_as_array, ['data'])
 
-import nose
+# TODO : find a better place for this ?
+from pyros_msgs.typecheck.ros_genmsg_py import import_msgsrv
+
+# a dynamically generated message type just for testing...
+test_opt_int8_as_array = import_msgsrv(
+    os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_int8_as_array.msg'),
+)
+
+import pyros_msgs.opt_as_array
+# patching (need to know the field name)
+pyros_msgs.opt_as_array.duck_punch(test_opt_int8_as_array, ['data'])
+
+import pytest
 import hypothesis
 import hypothesis.strategies
 
@@ -54,11 +64,14 @@ def test_init_default():
 ))
 def test_wrong_init_except(data):
     """Testing we except when types do not match"""
-    with nose.tools.assert_raises(AttributeError) as cm:
+    with pytest.raises(AttributeError) as cm:
         test_opt_int8_as_array(data)
-    assert isinstance(cm.exception, AttributeError)
-    assert "does not match the accepted type schema for 'data' : Any of set" in cm.exception.message
+    assert isinstance(cm.value, AttributeError)
+    assert "does not match the accepted type schema for 'data' : Any of set" in cm.value.message
 
 # Just in case we run this directly
 if __name__ == '__main__':
-    nose.runmodule(__name__)
+    pytest.main([
+        '-s',
+        __file__
+    ])
