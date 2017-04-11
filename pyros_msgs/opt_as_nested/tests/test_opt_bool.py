@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 # TODO : check all types
 
 import os
+import sys
 
 try:
     import rospy  # just checking if ROS environment has been sourced
@@ -15,13 +16,18 @@ except ImportError:
 
 
 # TODO : find a better place for this ?
-from pyros_msgs.typecheck.ros_genmsg_py import import_msgsrv
+from pyros_msgs.importer.ros_genmsg_py import generate_msgsrv_nspkg, import_msgsrv
 
 # a dynamically generated message type just for testing...
-test_opt_bool_as_nested = import_msgsrv(
-    os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_bool_as_nested.msg'),
+generated_modules = generate_msgsrv_nspkg(
+    [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_bool_as_nested.msg')],
     dependencies=['pyros_msgs']
 )
+for m in generated_modules:
+    import_msgsrv(m)
+
+test_opt_bool_as_nested = getattr(sys.modules['gen_msgs.msg._test_opt_bool_as_nested'], 'test_opt_bool_as_nested')
+
 
 import pyros_msgs.opt_as_nested
 # patching (need to know the field name)
