@@ -19,19 +19,8 @@ print(sys.path)
 try:
     from pyros_msgs.msg import OptionalFields
 except ImportError:  # if we fail here, we can attempt to generate on the fly
-    from pyros_msgs.importer.ros_genmsg_py import generate_msgsrv_nspkg, import_msgsrv
-
-    # a dynamically generated message type just for testing...
-    generated_modules = generate_msgsrv_nspkg(
-        [os.path.join(os.path.dirname(__file__), '..', '..', 'msg', 'OptionalFields.msg')],
-        package='pyros_msgs',
-        dependencies=['pyros_msgs'],
-        initpy=True,
-    )
-    for m in generated_modules:
-        import_msgsrv(m)
-
-    OptionalFields = getattr(sys.modules['_OptionalFields'], 'OptionalFields')
+    print("OptionalFields has not been found in pyros_msgs.msg subpackage. make sure you run 'python setup.py generate' before using this package.")
+    raise
 
 
 from .ros_mappings import typechecker_from_rosfield_opttype

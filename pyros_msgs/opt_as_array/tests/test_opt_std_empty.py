@@ -1,25 +1,31 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import sys
 
 try:
-    import std_msgs.msg as std_msgs
+    import genpy
 except ImportError:
     # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
     import pyros_setup
     # We rely on default configuration to point us ot the proper distro
     pyros_setup.configurable_import().configure().activate()
-    import std_msgs.msg as std_msgs
+    import genpy
 
 
 # TODO : find a better place for this ?
-from pyros_msgs.typecheck.ros_genmsg_py import import_msgsrv
+from pyros_msgs.importer.rosmsg_generator import generate_msgsrv_nspkg, import_msgsrv
 
 # a dynamically generated message type just for testing...
-test_opt_std_empty_as_array = import_msgsrv(
-    os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_std_empty_as_array.msg'),
+generated_modules = generate_msgsrv_nspkg(
+    [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_std_empty_as_array.msg')],
     dependencies=['std_msgs']
 )
+for m in generated_modules:
+    import_msgsrv(m)
+
+test_opt_std_empty_as_array = getattr(sys.modules['gen_msgs.msg._test_opt_std_empty_as_array'], 'test_opt_std_empty_as_array')
+
 
 import pyros_msgs.opt_as_array
 # patching (need to know the field name)

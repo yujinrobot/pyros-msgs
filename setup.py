@@ -10,6 +10,10 @@ import setuptools
 with open('pyros_msgs/typecheck/_version.py') as vf:
     exec(vf.read())
 
+# Including generator module directly from code to be able to generate our message classes
+with open('pyros_msgs/importer/rosmsg_generator.py') as gf:
+    exec(gf.read())
+
 # Best Flow :
 # Clean previous build & dist
 # $ gitchangelog >CHANGELOG.rst
@@ -40,28 +44,13 @@ class GenerateMsgCommand(setuptools.Command):
 
     def run(self):
         """runner"""
-        import os
-        # TODO : use genmsg_py to do that.
-        pyros_msgs_path = os.path.join("pyros_msgs", "msg")
-        if not os.path.exists(pyros_msgs_path):
-            os.makedirs(pyros_msgs_path)
 
-        filelist = [f for f in os.listdir(pyros_msgs_path)]
-        for f in filelist:
-            os.remove(os.path.join(pyros_msgs_path,f))
-
-        # TODO : change that to python code (using pyros-setup)
-        subprocess.check_call(". /opt/ros/indigo/setup.sh && /opt/ros/indigo/lib/genpy/genmsg_py.py -p pyros_msgs -Istd_msgs:/opt/ros/indigo/share/std_msgs/msg -o pyros_msgs/msg msg/opt_as_nested/*.msg msg/opt_as_array/*.msg", shell=True)
-
-        filename = '__init__.py'
-        with open(os.path.join(pyros_msgs_path, filename), 'wb') as temp_file:
-            temp_file.write("from __future__ import absolute_import\n\n")
-
-            modulelist = [f for f in os.listdir(pyros_msgs_path) if not f.startswith('__') and not f.endswith('.pyc')]
-            for m in modulelist:
-                assert m.endswith('.py')
-                m_py = m[:-3]  # removing '.py' extension
-                temp_file.write("from .{0} import *\n".format(m_py))
+        # generating message class
+        generated_modules = generate_msgsrv_nspkg(
+            [os.path.join(os.path.dirname(__file__), 'msg', 'OptionalFields.msg')],
+            package='pyros_msgs',
+            initpy=True,
+        )
 
         # Note we have a tricky problem here since the ros distro for our target needs to be installed on the machine packaging this...
         # But pip packages are supposed to work on any platform, so we might need another way...
@@ -251,7 +240,6 @@ setuptools.setup(name='pyros_msgs',
     include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
-        'pkg-resources>=3.3',  # needed to support namespace package (used for including generated message classes in our package, without relying on ROS trickery)
         # this is needed as install dependency since we embed tests in the package.
         'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...

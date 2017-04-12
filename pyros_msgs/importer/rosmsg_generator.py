@@ -6,7 +6,17 @@ import traceback
 import importlib
 
 
-# This will take the ROS distro version if ros has been setup
+try:
+    import genpy  # just checking if ROS environment has been sourced
+except ImportError:
+    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
+    import pyros_setup
+    # We rely on default configuration to point us ot the proper distro
+    pyros_setup.configurable_import().configure().activate()
+    import genpy # just checking if ROS environment has been sourced
+
+
+# This will take the package version from the machine's ROS distro
 import genpy.generator
 import genpy.generate_initpy
 
@@ -148,24 +158,6 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, outdir_p
     return [m[:-len('.__init__')] if m.endswith('.__init__') else m for m in gen_modules]
 
     # TODO : return something that can be imported later... with custom importer or following importlib API...
-
-    # for m in gen_modules:
-    #     if m.endswith('.__init__'):  # thisis the package __init__, we should import it
-    #         mod_name = m[:-len('.__init__')]
-    #         if mod_name in sys.modules:
-    #             # we need to force the reload in case we already have that module loaded (without the newest message)
-    #             # TODO : handle python >= 3.4 with importlib.reload()
-    #             mod = reload(sys.modules.get(mod_name))
-    #         else:
-    #             mod = importlib.import_module(mod_name)
-    #         class_name = os.path.basename(msgsrvfile)[:-4]
-    #         #print(vars(mod))
-    #         print(class_name)
-    #         if hasattr(mod, class_name):
-    #             return getattr(mod, class_name)
-    #         else:
-    #             raise ImportError("GENERATED module {class_name} not found in package {mod}".format(**locals()))
-    # TODO : doublecheck and fix that API to return the same thing as importlib.import_module returns, for consistency,...
 
 
 # This API is useful to import after a generation has been done with details.

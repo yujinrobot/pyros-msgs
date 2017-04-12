@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-
+import sys
 
 try:
     import rospy  # just checking if ROS environment has been sourced
@@ -15,12 +15,16 @@ except ImportError:
 import genpy
 
 # TODO : find a better place for this ?
-from pyros_msgs.typecheck.ros_genmsg_py import import_msgsrv
+from pyros_msgs.importer.rosmsg_generator import generate_msgsrv_nspkg, import_msgsrv
 
 # a dynamically generated message type just for testing...
-test_opt_time_as_array = import_msgsrv(
-    os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_time_as_array.msg'),
+generated_modules = generate_msgsrv_nspkg(
+    [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_time_as_array.msg')],
 )
+for m in generated_modules:
+    import_msgsrv(m)
+
+test_opt_time_as_array = getattr(sys.modules['gen_msgs.msg._test_opt_time_as_array'], 'test_opt_time_as_array')
 
 import pyros_msgs.opt_as_array
 # patching (need to know the field name)
