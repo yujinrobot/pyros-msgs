@@ -3,15 +3,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 
-try:
-    import rospy  # just checking if ROS environment has been sourced
-except ImportError:
-    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
-    import pyros_setup
-    # We rely on default configuration to point us ot the proper distro
-    pyros_setup.configurable_import().configure().activate()
-    import rospy  # just checking if ROS environment has been sourced
-
 
 # TODO : find a better place for this ?
 from pyros_msgs.importer.rosmsg_generator import generate_msgsrv_nspkg, import_msgsrv

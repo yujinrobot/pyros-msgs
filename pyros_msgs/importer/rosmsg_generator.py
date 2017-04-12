@@ -5,29 +5,40 @@ import sys
 import traceback
 import importlib
 
+"""
+Module that can be used standalone, or as part of the pyros_msgs.importer package
+
+It provides a set of functions to generate your ros messages, even when ROS is not installed on your system.
+You might however need to have dependent messages definitions reachable by rospack somewhere.
+"""
 
 try:
-    import genpy  # just checking if ROS environment has been sourced
+    # Using genpy and genmsg directly if ROS has been setup (while using from ROS pkg)
+    import genmsg as genmsg
+    import genmsg.command_line as genmsg_command_line
+    import genpy.generator as genpy_generator
+    import genpy.generate_initpy as genpy_generate_initpy
+
 except ImportError:
-    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
-    import pyros_setup
-    # We rely on default configuration to point us ot the proper distro
-    pyros_setup.configurable_import().configure().activate()
-    import genpy # just checking if ROS environment has been sourced
+
+    # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
+
+    import site
+    site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ros-site'))
+
+    import genmsg as genmsg
+    import genmsg.command_line as genmsg_command_line
+    import genpy.generator as genpy_generator
+    import genpy.generate_initpy as genpy_generate_initpy
+
+    # Note we do not want to use pyros_setup here.
+    # We do not want to do a full ROS setup, only import specific packages.
+    # If needed it should have been done before (loading a parent package).
+    # this handle the case where we want to be independent of any underlying ROS system.
 
 
-# This will take the package version from the machine's ROS distro
-import genpy.generator
-import genpy.generate_initpy
-
-import genmsg
-import genmsg.command_line
-
-import rospkg
-
-
-# TODO : integrate all that in pyros_setup
-import time
+class MsgDependencyNotFound(Exception):
+    pass
 
 
 def genros_py(rosfiles, generator, package, outdir, includepath=None, initpy=False):
@@ -53,7 +64,7 @@ def genros_py(rosfiles, generator, package, outdir, includepath=None, initpy=Fal
 
     # optionally we can generate __init__.py
     if initpy:
-        genpy.generate_initpy.write_modules(outdir)
+        genpy_generate_initpy.write_modules(outdir)
         genlist.add(os.path.join(outdir, '__init__.py'))
 
     return genlist
@@ -70,7 +81,7 @@ def genmsgsrv_py(msgsrv_files, package, outdir_pkg, includepath=None, initpy=Fal
     try:
         genset = set()
         genset.update(genros_py(rosfiles=[f for f in msgsrv_files if f.endswith('.msg')],
-                            generator=genpy.generator.MsgGenerator(),
+                            generator=genpy_generator.MsgGenerator(),
                             package=package,
                             outdir=os.path.join(outdir_pkg, 'msg'),
                             includepath=includepath,
@@ -80,7 +91,7 @@ def genmsgsrv_py(msgsrv_files, package, outdir_pkg, includepath=None, initpy=Fal
             time.sleep(.1)
 
         genset.update(genros_py(rosfiles=[f for f in msgsrv_files if f.endswith('.srv')],
-                            generator=genpy.generator.SrvGenerator(),
+                            generator=genpy_generator.SrvGenerator(),
                             package=package,
                             outdir=os.path.join(outdir_pkg, 'srv'),
                             includepath=includepath,
@@ -115,7 +126,7 @@ def clean_generated_py(path):
         os.remove(os.path.join(path, f))
 
 
-def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, outdir_pkg=None, initpy=True):
+def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_path=None, outdir_pkg=None, initpy=True, ns_pkg=False):
 
     # by default we generate for this package (does it make sense ?)
     # Careful it might still be None
@@ -127,20 +138,31 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, outdir_p
     # by default we create a relative directory to hold our package
     outdir_pkg = outdir_pkg or package
 
-    include_path = []
-    # get an instance of RosPack with the default search paths
-    rospack = rospkg.RosPack()
-    for d in dependencies:
-        # get the file path for a dependency
-        dpath = rospack.get_path(d)
-        # we populate include_path
-        include_path.append('{d}:{dpath}/msg'.format(**locals()))  # AFAIK only msg can be dependent msg types
+    include_path = include_path or []
+
+    # we might need to resolve some dependencies
+    unresolved_dependencies = [d for d in dependencies if d not in [p.split(':')[0] for p in include_path]]
+
+    if unresolved_dependencies:
+        # In that case we have no choice but to rely on ros packages (on the system)
+        import rospkg
+
+        # get an instance of RosPack with the default search paths
+        rospack = rospkg.RosPack()
+        for d in unresolved_dependencies:
+            try:
+                # get the file path for a dependency
+                dpath = rospack.get_path(d)
+                # we populate include_path
+                include_path.append('{d}:{dpath}/msg'.format(**locals()))  # AFAIK only msg can be dependent msg types
+            except rospkg.ResourceNotFound as rnf:
+                raise MsgDependencyNotFound(rnf.message)
 
     print("genmsgsrv_py(msgsrv_files={msgsrvfiles}, package={package}, outdir_pkg={outdir_pkg}, includepath={include_path}, initpy={initpy})".format(**locals()))
     gen_modules = genmsgsrv_py(msgsrv_files=msgsrvfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, initpy=initpy)
     print(gen_modules)
 
-    if initpy:
+    if ns_pkg:
         nspkg_init_path = os.path.join(package, '__init__.py')
         with open(nspkg_init_path, "w") as nspkg_init:
             nspkg_init.writelines([
@@ -151,9 +173,9 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, outdir_p
                 ""
             ])
 
-    # because the OS interface might not be synchronous....
-    while not os.path.exists(nspkg_init_path):
-        time.sleep(.1)
+        # because the OS interface might not be synchronous....
+        while not os.path.exists(nspkg_init_path):
+            time.sleep(.1)
 
     return [m[:-len('.__init__')] if m.endswith('.__init__') else m for m in gen_modules]
 

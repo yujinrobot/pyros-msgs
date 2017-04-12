@@ -61,67 +61,6 @@ class GenerateMsgCommand(setuptools.Command):
 
 # Clean way to add a custom "python setup.py <command>"
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
-class PrepareReleaseCommand(setuptools.Command):
-    """Command to release this package to Pypi"""
-    description = "prepare a release of pyros"
-    user_options = []
-
-    def initialize_options(self):
-        """init options"""
-        pass
-
-    def finalize_options(self):
-        """finalize options"""
-        pass
-
-    def run(self):
-        """runner"""
-
-        # TODO :
-        # $ gitchangelog >CHANGELOG.rst
-        # change version in code and changelog
-        subprocess.check_call("git commit CHANGELOG.rst pyros_msgs/typecheck/_version.py -m 'v{0}'".format(__version__), shell=True)
-        subprocess.check_call("git push", shell=True)
-
-        print("You should verify travis checks, and you can publish this release with :")
-        print("  python setup.py publish")
-        sys.exit()
-
-
-# Clean way to add a custom "python setup.py <command>"
-# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
-class PublishCommand(setuptools.Command):
-    """Command to release this package to Pypi"""
-    description = "releases pyros to Pypi"
-    user_options = []
-
-    def initialize_options(self):
-        """init options"""
-        # TODO : register option
-        pass
-
-    def finalize_options(self):
-        """finalize options"""
-        pass
-
-    def run(self):
-        """runner"""
-        # TODO : clean build/ and dist/ before building...
-        subprocess.check_call("python setup.py sdist", shell=True)
-        subprocess.check_call("python setup.py bdist_wheel", shell=True)
-        # OLD way:
-        # os.system("python setup.py sdist bdist_wheel upload")
-        # NEW way:
-        # Ref: https://packaging.python.org/distributing/
-        subprocess.check_call("twine upload dist/*", shell=True)
-
-        subprocess.check_call("git tag -a {0} -m 'version {0}'".format(__version__), shell=True)
-        subprocess.check_call("git push --tags", shell=True)
-        sys.exit()
-
-
-# Clean way to add a custom "python setup.py <command>"
-# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
 class RosDevelopCommand(setuptools.Command):
 
     """Command to mutate this package to a ROS package, using its ROS release repository"""
@@ -244,7 +183,8 @@ setuptools.setup(name='pyros_msgs',
         'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
-        'hypothesis>=3.0.1'  # to target xenial LTS version
+        'hypothesis>=3.0.1',  # to target xenial LTS version
+        'numpy>=1.8.2',  # from trusty version
     ],
     cmdclass={
         'generatemsg': GenerateMsgCommand,

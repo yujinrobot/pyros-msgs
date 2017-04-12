@@ -4,16 +4,6 @@ import os
 import sys
 
 
-try:
-    import rospy
-except ImportError:
-    # Because we need to access Ros message types here (from ROS env or from virtualenv, or from somewhere else)
-    import pyros_setup
-    # We rely on default configuration to point us ot the proper distro
-    pyros_setup.configurable_import().configure().activate()
-    import rospy
-
-
 import genpy
 
 # TODO : find a better place for this ?

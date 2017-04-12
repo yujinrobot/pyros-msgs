@@ -4,16 +4,16 @@ import numpy
 import pytest
 from StringIO import StringIO
 
-try:
-    import std_msgs.msg as std_msgs
-    import pyros_msgs
-    import genpy
-except ImportError:
-    import pyros_setup
-    pyros_setup.configurable_import().configure().activate()
-    import std_msgs.msg as std_msgs
-    import pyros_msgs
-    import genpy
+# try:
+#     import std_msgs.msg as std_msgs
+#     import pyros_msgs
+#     import genpy
+# except ImportError:
+#     import pyros_setup
+#     pyros_setup.configurable_import().configure().activate()
+#     import std_msgs.msg as std_msgs
+#     import pyros_msgs
+#     import genpy
 
 import six
 

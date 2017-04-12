@@ -6,13 +6,6 @@ This module defines ros mappings and  strategies for testing (covering ros use c
 It can be read as a specification of the current package.
 """
 
-try:
-    import genpy
-except ImportError:
-    import pyros_setup
-    pyros_setup.configurable_import().configure().activate()
-    import genpy
-
 
 import six
 
