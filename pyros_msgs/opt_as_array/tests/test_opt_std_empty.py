@@ -16,6 +16,7 @@ try:
         dependencies=['std_msgs'],
         # this is needed to be able to run this without underlying ROS system setup
         include_path=['std_msgs:' + os.path.join(os.path.dirname(__file__), 'msg', 'std_msgs')],
+        ns_pkg=True
     )
     for m in generated_modules:
         import_msgsrv(m)

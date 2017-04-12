@@ -144,19 +144,23 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_
     unresolved_dependencies = [d for d in dependencies if d not in [p.split(':')[0] for p in include_path]]
 
     if unresolved_dependencies:
-        # In that case we have no choice but to rely on ros packages (on the system)
-        import rospkg
+        try :
+            # In that case we have no choice but to rely on ros packages (on the system)
+            import rospkg
 
-        # get an instance of RosPack with the default search paths
-        rospack = rospkg.RosPack()
-        for d in unresolved_dependencies:
-            try:
-                # get the file path for a dependency
-                dpath = rospack.get_path(d)
-                # we populate include_path
-                include_path.append('{d}:{dpath}/msg'.format(**locals()))  # AFAIK only msg can be dependent msg types
-            except rospkg.ResourceNotFound as rnf:
-                raise MsgDependencyNotFound(rnf.message)
+            # get an instance of RosPack with the default search paths
+            rospack = rospkg.RosPack()
+            for d in unresolved_dependencies:
+                try:
+                    # get the file path for a dependency
+                    dpath = rospack.get_path(d)
+                    # we populate include_path
+                    include_path.append('{d}:{dpath}/msg'.format(**locals()))  # AFAIK only msg can be dependent msg types
+                except rospkg.ResourceNotFound as rnf:
+                    raise MsgDependencyNotFound(rnf.message)
+        except ImportError:
+            print("Attempt to import rospkg failed before attempting to resolve dependencies {0}".format(unresolved_dependencies))
+
 
     print("genmsgsrv_py(msgsrv_files={msgsrvfiles}, package={package}, outdir_pkg={outdir_pkg}, includepath={include_path}, initpy={initpy})".format(**locals()))
     gen_modules = genmsgsrv_py(msgsrv_files=msgsrvfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, initpy=initpy)

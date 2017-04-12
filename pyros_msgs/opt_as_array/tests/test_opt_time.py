@@ -11,6 +11,7 @@ from pyros_msgs.importer.rosmsg_generator import generate_msgsrv_nspkg, import_m
 # a dynamically generated message type just for testing...
 generated_modules = generate_msgsrv_nspkg(
     [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_time_as_array.msg')],
+    ns_pkg=True
 )
 for m in generated_modules:
     import_msgsrv(m)

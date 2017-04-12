@@ -7,6 +7,7 @@ import sys
 
 
 # TODO : find a better place for this ?
+import pyros_msgs
 from pyros_msgs.importer.rosmsg_generator import generate_msgsrv_nspkg, import_msgsrv
 
 # a dynamically generated message type just for testing...
@@ -14,9 +15,10 @@ generated_modules = generate_msgsrv_nspkg(
     [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_bool_as_nested.msg')],
     # we need to specify any dependency to have a chance to get it.
     dependencies=['pyros_msgs'],
+    include_path=['pyros_msgs:{0}'.format(os.path.join(os.path.dirname(pyros_msgs.__path__[0]), 'msg'))],
+    ns_pkg=True
 )
-for m in generated_modules:
-    import_msgsrv(m)
+import_msgsrv('gen_msgs.msg._test_opt_bool_as_nested')
 
 test_opt_bool_as_nested = getattr(sys.modules['gen_msgs.msg._test_opt_bool_as_nested'], 'test_opt_bool_as_nested')
 

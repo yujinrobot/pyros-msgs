@@ -6,6 +6,27 @@ This module defines ros mappings and  strategies for testing (covering ros use c
 It can be read as a specification of the current package.
 """
 
+import os
+
+
+try:
+    # Using genpy directly if ROS has been setup (while using from ROS pkg)
+    import genpy
+
+except ImportError:
+
+    # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
+
+    import site
+    site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ros-site'))
+
+    import genpy
+
+    # Note we do not want to use pyros_setup here.
+    # We do not want to do a full ROS setup, only import specific packages.
+    # If needed it should have been done before (loading a parent package).
+    # this handle the case where we want to be independent of any underlying ROS system.
+
 
 import six
 

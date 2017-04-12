@@ -4,15 +4,31 @@ import numpy
 import pytest
 from StringIO import StringIO
 
-# try:
-#     import std_msgs.msg as std_msgs
-#     import genpy
-# except ImportError:
-#     import pyros_setup
-#     pyros_setup.configurable_import().configure().activate()
-#     import std_msgs.msg as std_msgs
-#     import genpy
 
+import os
+import sys
+
+from pyros_msgs.importer.rosmsg_generator import MsgDependencyNotFound, generate_msgsrv_nspkg, import_msgsrv
+
+try:
+    # First we try to import from environment
+    import std_msgs.msg as std_msgs
+
+except ImportError:
+    # If we cannot import messages from environment (happens in isolated python usecase) we can try to generate them
+    std_msgs_dir = os.path.join(os.path.dirname(__file__), 'msg', 'std_msgs')
+    flist = os.listdir(std_msgs_dir)
+    generated_modules = generate_msgsrv_nspkg(
+        [os.path.join(std_msgs_dir, f) for f in flist],
+        package='std_msgs',
+        dependencies=['std_msgs'],
+        include_path=['std_msgs:{0}'.format(std_msgs_dir)],
+       ns_pkg=True
+    )
+    import_msgsrv('std_msgs.msg')
+    std_msgs = sys.modules['std_msgs.msg']
+
+import genpy
 
 from hypothesis import given, example, settings, Verbosity
 import hypothesis.strategies as st

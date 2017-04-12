@@ -26,6 +26,7 @@ with open('pyros_msgs/importer/rosmsg_generator.py') as gf:
 # TODO : command to retrieve extra ROS stuff from a third party release repo ( for ROS devs ). useful in dev only so maybe "rosdevelop" ? or via catkin_pip ?
 # TODO : command to release to Pip and ROS (bloom) same version one after the other...
 
+
 # Clean way to add a custom "python setup.py <command>"
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
 class GenerateMsgCommand(setuptools.Command):
@@ -56,6 +57,67 @@ class GenerateMsgCommand(setuptools.Command):
         # But pip packages are supposed to work on any platform, so we might need another way...
 
         print("Check that the messages classes have been generated properly...")
+        sys.exit()
+
+
+# Clean way to add a custom "python setup.py <command>"
+# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
+class PrepareReleaseCommand(setuptools.Command):
+    """Command to release this package to Pypi"""
+    description = "prepare a release of pyros"
+    user_options = []
+
+    def initialize_options(self):
+        """init options"""
+        pass
+
+    def finalize_options(self):
+        """finalize options"""
+        pass
+
+    def run(self):
+        """runner"""
+
+        # TODO :
+        # $ gitchangelog >CHANGELOG.rst
+        # change version in code and changelog
+        subprocess.check_call(
+            "git commit CHANGELOG.rst pyros_msgs/typecheck/_version.py -m 'v{0}'".format(__version__), shell=True)
+        subprocess.check_call("git push", shell=True)
+
+        print("You should verify travis checks, and you can publish this release with :")
+        print("  python setup.py publish")
+        sys.exit()
+
+# Clean way to add a custom "python setup.py <command>"
+# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
+class PublishCommand(setuptools.Command):
+    """Command to release this package to Pypi"""
+    description = "releases pyros to Pypi"
+    user_options = []
+
+    def initialize_options(self):
+        """init options"""
+        # TODO : register option
+        pass
+
+    def finalize_options(self):
+        """finalize options"""
+        pass
+
+    def run(self):
+        """runner"""
+        # TODO : clean build/ and dist/ before building...
+        subprocess.check_call("python setup.py sdist", shell=True)
+        subprocess.check_call("python setup.py bdist_wheel", shell=True)
+        # OLD way:
+        # os.system("python setup.py sdist bdist_wheel upload")
+        # NEW way:
+        # Ref: https://packaging.python.org/distributing/
+        subprocess.check_call("twine upload dist/*", shell=True)
+
+        subprocess.check_call("git tag -a {0} -m 'version {0}'".format(__version__), shell=True)
+        subprocess.check_call("git push --tags", shell=True)
         sys.exit()
 
 
@@ -189,8 +251,6 @@ setuptools.setup(name='pyros_msgs',
     cmdclass={
         'generatemsg': GenerateMsgCommand,
         'rosdevelop': RosDevelopCommand,
-        'prepare_release': PrepareReleaseCommand,
-        'publish': PublishCommand,
         'rospublish': ROSPublishCommand,
     },
     zip_safe=False,  # TODO testing...
