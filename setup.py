@@ -5,14 +5,18 @@ import subprocess
 import sys
 import tempfile
 import setuptools
+import runpy
 
 # Ref : https://packaging.python.org/single_source_version/#single-sourcing-the-version
-with open('pyros_msgs/typecheck/_version.py') as vf:
-    exec(vf.read())
+# runpy is safer and a beter habit than exec
+version = runpy.run_path('pyros_msgs/typecheck/_version.py')
+__version__ = version.get('__version__')
 
 # Including generator module directly from code to be able to generate our message classes
-with open('pyros_msgs/importer/rosmsg_generator.py') as gf:
-    exec(gf.read())
+# Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
+import imp
+rosmsg_generator = imp.load_source('rosmsg_generator', 'pyros_msgs/importer/rosmsg_generator.py')
+
 
 # Best Flow :
 # Clean previous build & dist
@@ -47,7 +51,7 @@ class GenerateMsgCommand(setuptools.Command):
         """runner"""
 
         # generating message class
-        generated_modules = generate_msgsrv_nspkg(
+        generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
             [os.path.join(os.path.dirname(__file__), 'msg', 'OptionalFields.msg')],
             package='pyros_msgs',
             initpy=True,
@@ -242,7 +246,7 @@ setuptools.setup(name='pyros_msgs',
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
         # this is needed as install dependency since we embed tests in the package.
-        'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
+        # 'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'hypothesis>=3.0.1',  # to target xenial LTS version

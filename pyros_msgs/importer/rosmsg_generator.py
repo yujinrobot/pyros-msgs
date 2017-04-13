@@ -24,8 +24,12 @@ except ImportError:
     # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
 
     import site
-    site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ros-site'))
+    print()
+    ros_site_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ros-site')
+    print("Adding site directory {ros_site_dir} to access genpy and genmsg.".format(**locals()))
+    site.addsitedir(ros_site_dir)
 
+    print(sys.path)
     import genmsg as genmsg
     import genmsg.command_line as genmsg_command_line
     import genpy.generator as genpy_generator

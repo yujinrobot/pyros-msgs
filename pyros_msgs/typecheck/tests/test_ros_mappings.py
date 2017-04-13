@@ -15,7 +15,7 @@ try:
 
 except ImportError:
     # If we cannot import messages from environment (happens in isolated python usecase) we can try to generate them
-    std_msgs_dir = os.path.join(os.path.dirname(__file__), 'msg', 'std_msgs')
+    std_msgs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'std_msgs', 'msg')
     flist = os.listdir(std_msgs_dir)
     generated_modules = generate_msgsrv_nspkg(
         [os.path.join(std_msgs_dir, f) for f in flist],

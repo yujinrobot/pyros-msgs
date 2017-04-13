@@ -9,13 +9,15 @@ import pytest
 # TODO : find a better place for this ?
 from pyros_msgs.importer.rosmsg_generator import MsgDependencyNotFound, generate_msgsrv_nspkg, import_msgsrv
 
+std_msgs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'std_msgs', 'msg')
+
 try:
     # a dynamically generated message type just for testing...
     generated_modules = generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_std_empty_as_array.msg')],
         dependencies=['std_msgs'],
         # this is needed to be able to run this without underlying ROS system setup
-        include_path=['std_msgs:' + os.path.join(os.path.dirname(__file__), 'msg', 'std_msgs')],
+        include_path=['std_msgs:' + std_msgs_dir],
         ns_pkg=True
     )
     for m in generated_modules:
@@ -43,7 +45,7 @@ try:
 except ImportError:
     # If we cannot import messages from environment (happens in isolated python usecase) we can try to generate them
     generated_modules = generate_msgsrv_nspkg(
-        [os.path.join(os.path.dirname(__file__), 'msg', 'std_msgs', 'Empty.msg')],
+        [os.path.join(std_msgs_dir, 'Empty.msg')],
         package='std_msgs'
     )
     for m in generated_modules:
