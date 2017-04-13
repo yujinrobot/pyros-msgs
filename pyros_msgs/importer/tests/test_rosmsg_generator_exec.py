@@ -11,7 +11,7 @@ import runpy
 
 # Including generator module directly from code to be able to generate our message classes
 import imp
-rosmsg_generator = imp.load_source('rosmsg_generator', 'pyros_msgs/importer/rosmsg_generator.py')
+rosmsg_generator = imp.load_source('rosmsg_generator', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosmsg_generator.py'))
 
 
 def test_generate_msgsrv_nspkg_usable():
