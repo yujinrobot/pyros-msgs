@@ -18,7 +18,7 @@ generated_modules = generate_msgsrv_nspkg(
     include_path=['pyros_msgs:{0}'.format(os.path.join(os.path.dirname(pyros_msgs.__path__[0]), 'msg'))],
     ns_pkg=True
 )
-import_msgsrv('gen_msgs.msg._test_opt_bool_as_nested')
+import_msgsrv('gen_msgs.msg._test_opt_int8_as_nested')
 
 test_opt_int8_as_nested = getattr(sys.modules['gen_msgs.msg._test_opt_int8_as_nested'], 'test_opt_int8_as_nested')
 
