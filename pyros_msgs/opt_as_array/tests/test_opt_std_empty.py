@@ -6,76 +6,47 @@ import sys
 
 import pytest
 
-# TODO : find a better place for this ?
-from pyros_msgs.importer.rosmsg_generator import MsgDependencyNotFound, generate_msgsrv_nspkg, import_msgsrv
 
-std_msgs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'std_msgs', 'msg')
+# generating all and accessing the required message class.
+from pyros_msgs.opt_as_array.tests import msg_generate
 
 try:
-    # a dynamically generated message type just for testing...
-    generated_modules = generate_msgsrv_nspkg(
-        [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_std_empty_as_array.msg')],
-        dependencies=['std_msgs'],
-        # this is needed to be able to run this without underlying ROS system setup
-        include_path=['std_msgs:' + std_msgs_dir],
-        ns_pkg=True
-    )
-    for m in generated_modules:
-        import_msgsrv(m)
+    # This should succeed if the message class was already generated
+    import std_msgs.msg as std_msgs
+except ImportError:  # we should enter here if the message was not generated yet.
+    std_msgs = msg_generate.generate_std_msgs()
 
-except MsgDependencyNotFound:
-    pytest.skip("Failed to find message package std_msgs.")
-
-
-test_opt_std_empty_as_array = getattr(sys.modules['gen_msgs.msg._test_opt_std_empty_as_array'], 'test_opt_std_empty_as_array')
+test_gen_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
 
 
 import pyros_msgs.opt_as_array
 # patching (need to know the field name)
-pyros_msgs.opt_as_array.duck_punch(test_opt_std_empty_as_array, ['data'])
+pyros_msgs.opt_as_array.duck_punch(test_gen_msgs.test_opt_std_empty_as_array, ['data'])
 
 import hypothesis
 import hypothesis.strategies
 
 
-try:
-    # First we try to import from environment
-    from std_msgs.msg import Empty as std_msgs_Empty
-
-except ImportError:
-    # If we cannot import messages from environment (happens in isolated python usecase) we can try to generate them
-    generated_modules = generate_msgsrv_nspkg(
-        [os.path.join(std_msgs_dir, 'Empty.msg')],
-        package='std_msgs'
-    )
-    for m in generated_modules:
-        import_msgsrv(m)
-
-    std_msgs_Empty = getattr(sys.modules['std_msgs.msg._Empty'], 'Empty')
-
-    # pytest.skip("Cannot import std_msgs.msg")
-
-
-@hypothesis.given(hypothesis.strategies.lists(hypothesis.strategies.builds(std_msgs_Empty), max_size=1))
+@hypothesis.given(hypothesis.strategies.lists(hypothesis.strategies.builds(std_msgs.Empty), max_size=1))
 def test_init_rosdata(data):
-    msg = test_opt_std_empty_as_array(data=data)
+    msg = test_gen_msgs.test_opt_std_empty_as_array(data=data)
     assert msg.data == data
 
 
-@hypothesis.given(hypothesis.strategies.builds(std_msgs_Empty))
+@hypothesis.given(hypothesis.strategies.builds(std_msgs.Empty))
 def test_init_data(data):
-    msg = test_opt_std_empty_as_array(data=data)
+    msg = test_gen_msgs.test_opt_std_empty_as_array(data=data)
     assert msg.data == [data]
 
 
-@hypothesis.given(hypothesis.strategies.builds(std_msgs_Empty))
+@hypothesis.given(hypothesis.strategies.builds(std_msgs.Empty))
 def test_init_raw(data):
-    msg = test_opt_std_empty_as_array(data)
+    msg = test_gen_msgs.test_opt_std_empty_as_array(data)
     assert msg.data == [data]
 
 
 def test_init_default():
-    msg = test_opt_std_empty_as_array()
+    msg = test_gen_msgs.test_opt_std_empty_as_array()
     assert msg.data == []
 
 

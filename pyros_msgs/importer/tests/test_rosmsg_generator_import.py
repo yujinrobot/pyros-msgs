@@ -9,9 +9,8 @@ import runpy
 
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
 
-# Including generator module directly from code to be able to generate our message classes
-import imp
-rosmsg_generator = imp.load_source('rosmsg_generator', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'rosmsg_generator.py'))
+# Importing generator module
+from pyros_msgs.importer import rosmsg_generator
 
 
 def test_generate_msgsrv_nspkg_usable():
@@ -21,6 +20,7 @@ def test_generate_msgsrv_nspkg_usable():
         package='test_gen_msgs',
         ns_pkg=True,
     )
+
 
     # Verify that files exists and are importable
     for m in [generated_msg, generated_srv]:
@@ -32,4 +32,5 @@ def test_generate_msgsrv_nspkg_usable():
 
         assert msg_mod is not None
         assert srv_mod is not None
+
 

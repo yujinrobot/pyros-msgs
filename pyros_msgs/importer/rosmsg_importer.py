@@ -1,8 +1,17 @@
 from __future__ import absolute_import, division, print_function
 
+"""
+A module to setup custom importer for .msg and .srv files
+Upon import, it will first find the .msg file, then generate the python module for it, then load it.
+
+TODO...
+"""
+
 # We need to be extra careful with python versions
 # Ref : https://docs.python.org/dev/library/importlib.html#importlib.import_module
 
+# Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
+# Note : Coudlnt find a way to make imp.load_source deal with packages or relative imports (necessary for our generated message classes)
 import os
 import sys
 

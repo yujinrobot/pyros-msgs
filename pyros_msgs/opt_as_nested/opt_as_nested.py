@@ -11,16 +11,8 @@ from pyros_msgs.typecheck import (
     make_typechecker_field_hidden,
 )
 
-print(pyros_msgs.__path__)
 import os
 import sys
-print(sys.path)
-
-try:
-    from pyros_msgs.msg import OptionalFields
-except ImportError:  # if we fail here, we can attempt to generate on the fly
-    print("OptionalFields has not been found in pyros_msgs.msg subpackage. make sure you run 'python setup.py generate' before using this package.")
-    raise
 
 
 from .ros_mappings import typechecker_from_rosfield_opttype
@@ -33,6 +25,16 @@ def duck_punch(msg_mod, opt_slot_list):
     :param opt_slot_list:
     :return:
     """
+
+    # Delayed import to look for generated OptionalFields just before using it.
+    # Trick to be able to import this package without requiring messages to be generated yet (like for opt_as_array).
+    # This allow on the fly generation for subpackages (like .tests).
+    try:
+        from pyros_msgs.msg import OptionalFields
+    except ImportError:  # if we fail here, we can attempt to generate on the fly
+        print(
+            "OptionalFields has not been found in pyros_msgs.msg subpackage. Make sure you run 'python setup.py generate' before using this package.")
+        raise
 
     def get_settable_fields():
         return {s: st for s, st in zip(msg_mod.__slots__, msg_mod._slot_types) if st != 'pyros_msgs/OptionalFields'}
