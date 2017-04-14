@@ -8,6 +8,8 @@ import importlib
 
 import time
 
+import pkg_resources
+
 """
 Module that can be used standalone, or as part of the pyros_msgs.importer package
 
@@ -293,6 +295,8 @@ def generate_msgsrv_nspkg(msgsrvfiles, package=None, dependencies=None, include_
 def import_msgsrv(sitedir, gen_msgs = None, gen_srvs = None):
     import site
     site.addsitedir(sitedir)  # we add our output dir as a site (to be able to import from it as usual)
+    # because we modify sys.path, we also need to handle namespace packages
+    pkg_resources.fixup_namespace_packages(sitedir)
 
     msgs_mod = importlib.import_module(gen_msgs)
     srvs_mod = importlib.import_module(gen_srvs)
