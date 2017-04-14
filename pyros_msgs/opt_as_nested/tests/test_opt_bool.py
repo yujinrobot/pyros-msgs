@@ -15,7 +15,7 @@ generated_modules = generate_msgsrv_nspkg(
     [os.path.join(os.path.dirname(__file__), 'msg', 'test_opt_bool_as_nested.msg')],
     # we need to specify any dependency to have a chance to get it.
     dependencies=['pyros_msgs'],
-    include_path=['pyros_msgs:{0}'.format(os.path.join(pyros_msgs.__path__[0], 'msg'))],
+    include_path=['pyros_msgs:{0}'.format(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'msg'))],
     ns_pkg=True
 )
 import_msgsrv('gen_msgs.msg._test_opt_bool_as_nested')
