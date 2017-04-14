@@ -1,12 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy
-import pytest
-from StringIO import StringIO
-
-
-import os
-import sys
+import six
 
 
 # generating all and accessing the required message class.
@@ -30,7 +25,7 @@ def test_typechecker_serialize_deserialize_float32_inverse(value):
     """"""
 
     # sending
-    buff = StringIO()
+    buff = six.StringIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()
@@ -51,7 +46,7 @@ def test_typechecker_serialize_deserialize_time_inverse(value):
     """"""
 
     # sending
-    buff = StringIO()
+    buff = six.StringIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()

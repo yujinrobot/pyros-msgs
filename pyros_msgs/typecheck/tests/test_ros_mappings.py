@@ -1,11 +1,8 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import sys
 import numpy
 import pytest
-from StringIO import StringIO
-
+import six
 
 # generating all and accessing the required message class.
 from pyros_msgs.typecheck.tests import msg_generate
@@ -116,7 +113,7 @@ def test_typechecker_serialize_deserialize_inverse(msg_type_and_ok_value):
     value = tc(msg_type_and_ok_value[1])
 
     # sending
-    buff = StringIO()
+    buff = six.StringIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()
@@ -143,7 +140,7 @@ def test_typechecker_typechecker_prevent_broken_values(msg_type_and_bad_value):
         value = tc(msg_type_and_bad_value[1])
 
         # sending
-        buff = StringIO()
+        buff = six.StringIO()
         value.serialize(buff)
         serialized = buff.getvalue()
         buff.close()
