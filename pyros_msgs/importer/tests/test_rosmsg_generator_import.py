@@ -15,7 +15,7 @@ from pyros_msgs.importer import rosmsg_generator
 
 def test_generate_msgsrv_nspkg_usable():
     # generating message class
-    generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
+    generated_dir, generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
         package='test_gen_msgs',
         initpy=True,

@@ -16,14 +16,14 @@ rosmsg_generator = imp.load_source('rosmsg_generator', os.path.join(os.path.dirn
 
 def test_generate_msgsrv_nspkg_usable():
     # generating message class
-    generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
+    generated_dir, generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
         package='test_gen_msgs',
         initpy=True,
     )
 
     for m in generated_modules:
-        # mpdules are generated where the file is launched
+        # modules are generated where the file is launched
         gen_file = os.path.join(os.getcwd(), *m.split("."))
         assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
 

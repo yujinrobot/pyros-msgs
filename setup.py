@@ -51,7 +51,7 @@ class GenerateMsgCommand(setuptools.Command):
         """runner"""
 
         # generating message class
-        generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
+        generated_dir, generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
             [os.path.join(os.path.dirname(__file__), 'msg', 'OptionalFields.msg')],
             package='pyros_msgs',
             initpy=True,

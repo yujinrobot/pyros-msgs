@@ -22,18 +22,16 @@ test_gen_msg_dir = os.path.join(os.path.dirname(__file__), 'msg')
 # TODO : replace this by a clever custom importer
 def generate_std_msgs():
     flist = os.listdir(std_msgs_dir)
-    generated_dir, generated_modules = generate_msgsrv_nspkg(
+    generated = generate_msgsrv_nspkg(
         [os.path.join(std_msgs_dir, f) for f in flist],
         package='std_msgs',
         dependencies=['std_msgs'],
         include_path=['std_msgs:{0}'.format(std_msgs_dir)],
         ns_pkg=True
     )
-    assert 'std_msgs.msg' in generated_modules
-    import_msgsrv('std_msgs.msg')
-    std_msgs = sys.modules['std_msgs.msg']
+    test_gen_msgs, test_gen_srvs = import_msgsrv(*generated)
 
-    return std_msgs
+    return test_gen_msgs, test_gen_srvs
 
 
 

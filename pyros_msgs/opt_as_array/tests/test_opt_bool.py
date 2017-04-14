@@ -6,7 +6,7 @@ import sys
 
 # generating all and accessing the required message classe.
 from pyros_msgs.opt_as_array.tests import msg_generate
-test_gen_msgs = msg_generate.generate_test_msgs()
+test_gen_msgs, test_gen_srvs = msg_generate.generate_test_msgs()
 
 # patching (need to know the field name)
 import pyros_msgs.opt_as_array

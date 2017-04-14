@@ -8,7 +8,7 @@ import genpy
 
 # generating all and accessing the required message class.
 from pyros_msgs.opt_as_array.tests import msg_generate
-gen_test_msgs = msg_generate.generate_test_msgs()
+gen_test_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
 
 
 import pyros_msgs.opt_as_array

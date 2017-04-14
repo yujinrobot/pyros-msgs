@@ -14,7 +14,7 @@ try:
     # This should succeed if the message class was already generated
     import std_msgs.msg as std_msgs
 except ImportError:  # we should enter here if the message was not generated yet.
-    std_msgs = msg_generate.generate_std_msgs()
+    std_msgs, std_srvs = msg_generate.generate_std_msgs()
 
 import genpy
 

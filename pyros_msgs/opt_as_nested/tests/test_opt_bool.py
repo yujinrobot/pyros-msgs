@@ -15,7 +15,7 @@ try:
 except ImportError:  # we should enter here if the message was not generated yet.
     pyros_msgs = msg_generate.generate_pyros_msgs()
 
-test_gen_msgs = msg_generate.generate_test_msgs()
+test_gen_msgs, test_gen_srvs = msg_generate.generate_test_msgs()
 
 
 import pyros_msgs.opt_as_nested

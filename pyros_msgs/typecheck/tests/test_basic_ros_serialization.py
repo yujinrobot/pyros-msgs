@@ -8,8 +8,6 @@ from StringIO import StringIO
 import os
 import sys
 
-from pyros_msgs.importer.rosmsg_generator import MsgDependencyNotFound, generate_msgsrv_nspkg, import_msgsrv
-
 
 # generating all and accessing the required message class.
 from pyros_msgs.typecheck.tests import msg_generate
@@ -18,7 +16,7 @@ try:
     # This should succeed if the message class was already generated
     import std_msgs.msg as std_msgs
 except ImportError:  # we should enter here if the message was not generated yet.
-    std_msgs = msg_generate.generate_std_msgs()
+    std_msgs, std_srvs = msg_generate.generate_std_msgs()
 
 import genpy
 

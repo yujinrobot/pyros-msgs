@@ -16,7 +16,7 @@ try:
 except ImportError:  # we should enter here if the message was not generated yet.
     std_msgs = msg_generate.generate_std_msgs()
 
-test_gen_msgs = msg_generate.generate_test_msgs()
+test_gen_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
 
 
 import pyros_msgs.opt_as_array

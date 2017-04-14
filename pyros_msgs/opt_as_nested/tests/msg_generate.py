@@ -22,37 +22,33 @@ test_gen_msg_dir = os.path.join(os.path.dirname(__file__), 'msg')
 # TODO : replace this by a clever custom importer
 def generate_pyros_msgs():
     flist = os.listdir(pyros_msgs_dir)
-    generated_dir, generated_modules = generate_msgsrv_nspkg(
+    generated = generate_msgsrv_nspkg(
         [os.path.join(pyros_msgs_dir, f) for f in flist],
         package='pyros_msgs',
         ns_pkg=True
     )
-    assert 'pyros_msgs.msg' in generated_modules
-    import_msgsrv('pyros_msgs.msg')
-    pyros_msgs = sys.modules['pyros_msgs.msg']
+    pyros_msgs_msg, pyros_srvs_srv = import_msgsrv(*generated)
 
-    return pyros_msgs
+    return pyros_msgs_msg, pyros_srvs_srv
 
 
 def generate_test_msgs():
     try:
         # This should succeed if the message has been generated previously (or accessing ROS generated message)
         import pyros_msgs.msg as pyros_msgs
-    except ImportError:  # we should enter here if the message class hasnt been generated yet.
-        pyros_msgs = generate_pyros_msgs()
+    except ImportError:  # we should enter here if the message class hasn't been generated yet.
+        pyros_msgs_msg, pyros_msgs_srv = generate_pyros_msgs()
 
     flist = os.listdir(test_gen_msg_dir)
-    generated_dir, generated_modules = generate_msgsrv_nspkg(
+    generated = generate_msgsrv_nspkg(
         [os.path.join(test_gen_msg_dir, f) for f in flist],
         package='test_nested_gen_msgs',
         dependencies=['pyros_msgs'],
         include_path=['pyros_msgs:{0}'.format(pyros_msgs_dir)],
         ns_pkg=True
     )
-    assert 'test_nested_gen_msgs.msg' in generated_modules
-    import_msgsrv('test_nested_gen_msgs.msg')
-    test_gen_msgs = sys.modules['test_nested_gen_msgs.msg']
+    test_gen_msgs, test_gen_srvs = import_msgsrv(*generated)
 
-    return test_gen_msgs
+    return test_gen_msgs, test_gen_srvs
 
 
