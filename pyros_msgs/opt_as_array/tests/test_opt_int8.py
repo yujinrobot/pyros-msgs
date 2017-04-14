@@ -1,9 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import sys
-
-
 
 # generating all and accessing the required message classe.
 from pyros_msgs.opt_as_array.tests import msg_generate
