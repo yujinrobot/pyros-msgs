@@ -10,23 +10,15 @@ import sys
 
 from pyros_msgs.importer.rosmsg_generator import MsgDependencyNotFound, generate_msgsrv_nspkg, import_msgsrv
 
-try:
-    # First we try to import from environment
-    import std_msgs.msg as std_msgs
 
-except ImportError:
-    # If we cannot import messages from environment (happens in isolated python usecase) we can try to generate them
-    std_msgs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'std_msgs', 'msg')
-    flist = os.listdir(std_msgs_dir)
-    generated_modules = generate_msgsrv_nspkg(
-        [os.path.join(std_msgs_dir, f) for f in flist],
-        package='std_msgs',
-        dependencies=['std_msgs'],
-        include_path=['std_msgs:{0}'.format(std_msgs_dir)],
-       ns_pkg=True
-    )
-    import_msgsrv('std_msgs.msg')
-    std_msgs = sys.modules['std_msgs.msg']
+# generating all and accessing the required message class.
+from pyros_msgs.typecheck.tests import msg_generate
+
+try:
+    # This should succeed if the message class was already generated
+    import std_msgs.msg as std_msgs
+except ImportError:  # we should enter here if the message was not generated yet.
+    std_msgs = msg_generate.generate_std_msgs()
 
 import genpy
 
