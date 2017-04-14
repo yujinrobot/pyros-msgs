@@ -51,10 +51,10 @@ class GenerateMsgCommand(setuptools.Command):
         """runner"""
 
         # generating message class
-        generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
+        generated = rosmsg_generator.generate_msgsrv_nspkg(
             [os.path.join(os.path.dirname(__file__), 'msg', 'OptionalFields.msg')],
             package='pyros_msgs',
-            initpy=True,
+            ns_pkg=False,  # no need to generate ns_pkg here, we can use the one we already have
         )
 
         # Note we have a tricky problem here since the ros distro for our target needs to be installed on the machine packaging this...
