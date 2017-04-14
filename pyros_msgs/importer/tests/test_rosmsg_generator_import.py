@@ -15,15 +15,22 @@ from pyros_msgs.importer import rosmsg_generator
 
 def test_generate_msgsrv_nspkg_usable():
     # generating message class
-    generated_dir, generated_modules = rosmsg_generator.generate_msgsrv_nspkg(
+    sitedir, generated_msg, generated_srv = rosmsg_generator.generate_msgsrv_nspkg(
         [os.path.join(os.path.dirname(__file__), 'msg', 'TestMsg.msg')],
         package='test_gen_msgs',
-        initpy=True,
+        ns_pkg=True,
     )
 
-    for m in generated_modules:
-        # mpdules are generated where the file is launched
-        gen_file = os.path.join(os.getcwd(), *m.split("."))
+
+    # Verify that files exists and are importable
+    for m in [generated_msg, generated_srv]:
+        # modules are generated where the file is launched
+        gen_file = os.path.join(sitedir, *m.split("."))
         assert os.path.exists(gen_file + '.py') or os.path.exists(os.path.join(gen_file, '__init__.py'))
+
+        msg_mod, srv_mod = rosmsg_generator.import_msgsrv(sitedir, generated_msg, generated_srv)
+
+        assert msg_mod is not None
+        assert srv_mod is not None
 
 
