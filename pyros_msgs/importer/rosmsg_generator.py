@@ -22,31 +22,17 @@ Note : Generated modules/packages can only be imported once. So it is important 
 - still allows to generate only one module / a part of the whole package, caveats apply / warning added.
 """
 
-try:
-    # Using genpy and genmsg directly if ROS has been setup (while using from ROS pkg)
-    import genmsg as genmsg
-    import genmsg.command_line as genmsg_command_line
-    import genpy.generator as genpy_generator
-    import genpy.generate_initpy as genpy_generate_initpy
+# Using genpy and genmsg directly if ROS has already been setup (while using from ROS pkg)
+# Or relying on the environment that has been setup by pip -r requirements/<distro_name>.txt
+import genmsg as genmsg
+import genmsg.command_line
+import genpy.generator
+import genpy.generate_initpy
 
-except ImportError:
-
-    # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
-
-    import site
-    ros_site_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'ros-site')
-    print("Adding site directory {ros_site_dir} to access genpy and genmsg.".format(**locals()))
-    site.addsitedir(ros_site_dir)
-
-    import genmsg as genmsg
-    import genmsg.command_line as genmsg_command_line
-    import genpy.generator as genpy_generator
-    import genpy.generate_initpy as genpy_generate_initpy
-
-    # Note we do not want to use pyros_setup here.
-    # We do not want to do a full ROS setup, only import specific packages.
-    # If needed it should have been done before (loading a parent package).
-    # this handle the case where we want to be independent of any underlying ROS system.
+# Note we do not want to use pyros_setup here.
+# We do not want to do a full ROS setup, only import two specific packages.
+# If needed it should have been done before (loading a parent package).
+# This handle the case where we want to be independent of any underlying ROS system.
 
 
 class MsgDependencyNotFound(Exception):
@@ -88,7 +74,7 @@ def genmsg_py(msg_files, package, outdir_pkg, includepath=None, initpy=True):
     outdir = os.path.join(outdir_pkg, 'msg')
     try:
         genros_py(rosfiles=[f for f in msg_files if f.endswith('.msg')],
-                  generator=genpy_generator.MsgGenerator(),
+                  generator=genpy.generator.MsgGenerator(),
                   package=package,
                   outdir=outdir,
                   includepath=includepath,
@@ -116,7 +102,7 @@ def genmsg_py(msg_files, package, outdir_pkg, includepath=None, initpy=True):
         if os.path.exists(init_path):
             raise PkgAlreadyExists("Keeping {init_path}, generation skipped.")
         else:
-            genpy_generate_initpy.write_modules(outdir)
+            genpy.generate_initpy.write_modules(outdir)
             genset.add(init_path)
     else:  # we list all files, only if init.py was not created (and user has to import one by one)
         for f in msg_files:
@@ -141,7 +127,7 @@ def gensrv_py(srv_files, package, outdir_pkg, includepath=None, initpy=True):
     outdir = os.path.join(outdir_pkg, 'srv')
     try:
         genros_py(rosfiles=[f for f in srv_files if f.endswith('.srv')],
-                  generator=genpy_generator.SrvGenerator(),
+                  generator=genpy.generator.SrvGenerator(),
                   package=package,
                   outdir=outdir,
                   includepath=includepath,
@@ -169,7 +155,7 @@ def gensrv_py(srv_files, package, outdir_pkg, includepath=None, initpy=True):
         if os.path.exists(init_path):
             raise PkgAlreadyExists("Keeping {init_path}, generation skipped.")
         else:
-            genpy_generate_initpy.write_modules(outdir)
+            genpy.generate_initpy.write_modules(outdir)
             genset.add(init_path)
     else:  # we list all files, only if init.py was not created (and user has to import one by one)
         for f in srv_files:

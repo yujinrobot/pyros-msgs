@@ -248,7 +248,9 @@ setuptools.setup(name='pyros_msgs',
         # this is needed as install dependency since we embed tests in the package.
         # 'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
-        'pyyaml>=3.10',  # genpy relies on this...
+        #'pyyaml>=3.10',  # genpy relies on this...
+        'ros_genpy',
+        'ros_genmsg',
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'hypothesis>=3.0.1',  # to target xenial LTS version
         'numpy>=1.8.2',  # from trusty version
