@@ -37,6 +37,8 @@ def generate_std_msgs():
 def generate_test_msgs():
     try:
         # This should succeed if the message has been generated previously.
+        import fixmeee
+        1/0
         import std_msgs.msg as std_msgs
     except ImportError:  # we should enter here if the message class hasnt been generated yet.
         std_msgs, std_srvs = generate_std_msgs()
