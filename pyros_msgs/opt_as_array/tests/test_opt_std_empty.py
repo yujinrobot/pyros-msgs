@@ -12,8 +12,6 @@ from pyros_msgs.opt_as_array.tests import msg_generate
 
 try:
     # This should succeed if the message class was already generated
-    import fixmeee
-    1/0
     import std_msgs.msg as std_msgs
 except ImportError:  # we should enter here if the message was not generated yet.
     std_msgs = msg_generate.generate_std_msgs()
