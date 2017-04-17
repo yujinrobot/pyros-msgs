@@ -1,4 +1,5 @@
 #TODO : proper version for this ROS distro
+
+# It seems this is needed since pip doesnt seem to retrieve the dependency link from the setup.py...
+git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
 git+https://github.com/asmodehn/genpy.git@setuptools#egg=ros_genpy
-# this might not be needed since retrieving genpy should also retrieve genmsg as dependency
-#git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
