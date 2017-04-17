@@ -1,3 +1,4 @@
 #TODO : proper version for this ROS distro
 git+https://github.com/asmodehn/genpy.git@setuptools#egg=ros_genpy
-git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
+# this might not be needed since retrieving genpy should also retrieve genmsg as dependency
+#git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
