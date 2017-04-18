@@ -27,8 +27,14 @@ import hypothesis.strategies
 @hypothesis.given(hypothesis.strategies.lists(
     hypothesis.strategies.builds(
         genpy.Duration,
-        secs=hypothesis.strategies.integers(min_value=-2147483648 +1, max_value=2147483647 -1),
-        nsecs=hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647)
+        secs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648 +3, max_value=2147483647 -2),
+            hypothesis.strategies.sampled_from([-2147483648 +3, 2147483647 -2])
+        ),
+        nsecs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647),
+            hypothesis.strategies.sampled_from([-2147483648, 2147483647])
+        )
     ), max_size=1
 ))
 def test_init_rosdata(data):
@@ -36,11 +42,18 @@ def test_init_rosdata(data):
     assert msg.data == data
 
 
+
 @hypothesis.given(
     hypothesis.strategies.builds(
         genpy.Duration,
-        secs=hypothesis.strategies.integers(min_value=-2147483648 +1, max_value=2147483647 -1),
-        nsecs=hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647)
+        secs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648 + 3, max_value=2147483647 - 2),
+            hypothesis.strategies.sampled_from([-2147483648 +3, 2147483647 -2])
+        ),
+        nsecs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647),
+            hypothesis.strategies.sampled_from([-2147483648, 2147483647])
+        )
     )
 )
 def test_init_data(data):
@@ -51,8 +64,14 @@ def test_init_data(data):
 @hypothesis.given(
     hypothesis.strategies.builds(
         genpy.Duration,
-        secs=hypothesis.strategies.integers(min_value=-2147483648 +1, max_value=2147483647 -1),
-        nsecs=hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647)
+        secs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648 + 3, max_value=2147483647 - 2),
+            hypothesis.strategies.sampled_from([-2147483648 +3, 2147483647 -2])
+        ),
+        nsecs=hypothesis.strategies.one_of(
+            hypothesis.strategies.integers(min_value=-2147483648, max_value=2147483647),
+            hypothesis.strategies.sampled_from([-2147483648, 2147483647])
+        )
     )
 )
 def test_init_raw(data):
