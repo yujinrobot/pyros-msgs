@@ -36,6 +36,8 @@ generate_messages(DEPENDENCIES std_msgs)
 # Catkin
 ##############################################################################
 
+catkin_pip_requirements(requirements/indigo.txt)
+
 catkin_pip_package(pyros_msgs)
 
 #########
