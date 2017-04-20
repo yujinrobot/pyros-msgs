@@ -51,7 +51,7 @@ def generate_std_msgs():
     return std_msgs, std_srvs
 
 
-def generate_test_msgs_std():
+def generate_test_msgs():
     try:
         # This should succeed if the message has been generated previously (or accessing ROS generated message)
         import pyros_msgs.msg as pyros_msgs
@@ -71,26 +71,6 @@ def generate_test_msgs_std():
         package='test_nested_gen_msgs',
         dependencies=['pyros_msgs', 'std_msgs'],
         include_path=['pyros_msgs:{0}'.format(pyros_msgs_dir), 'std_msgs:{0}'.format(std_msgs_dir)],
-        ns_pkg=True
-    )
-    test_gen_msgs, test_gen_srvs = import_msgsrv(*generated)
-
-    return test_gen_msgs, test_gen_srvs
-
-
-def generate_test_msgs():
-    try:
-        # This should succeed if the message has been generated previously (or accessing ROS generated message)
-        import pyros_msgs.msg as pyros_msgs
-    except ImportError:  # we should enter here if the message class hasn't been generated yet.
-        pyros_msgs_msg, pyros_msgs_srv = generate_pyros_msgs()
-
-    flist = os.listdir(test_gen_msg_dir)
-    generated = generate_msgsrv_nspkg(
-        [os.path.join(test_gen_msg_dir, f) for f in flist],
-        package='test_nested_gen_msgs',
-        dependencies=['pyros_msgs'],
-        include_path=['pyros_msgs:{0}'.format(pyros_msgs_dir)],
         ns_pkg=True
     )
     test_gen_msgs, test_gen_srvs = import_msgsrv(*generated)

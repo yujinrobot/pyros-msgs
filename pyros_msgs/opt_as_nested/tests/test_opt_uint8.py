@@ -4,7 +4,7 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
-
+import pytest
 
 # generating all and accessing the required message class.
 from pyros_msgs.opt_as_nested.tests import msg_generate
@@ -15,14 +15,15 @@ try:
 except ImportError:  # we should enter here if the message was not generated yet.
     pyros_msgs = msg_generate.generate_pyros_msgs()
 
-test_gen_msgs, test_gen_srvs = msg_generate.generate_test_msgs()
-
+try:
+    test_gen_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
+except Exception as e:
+    pytest.raises(e)
 
 import pyros_msgs.opt_as_nested
 # patching (need to know the field name)
 pyros_msgs.opt_as_nested.duck_punch(test_gen_msgs.test_opt_uint8_as_nested, ['data'])
 
-import pytest
 import hypothesis
 import hypothesis.strategies
 
