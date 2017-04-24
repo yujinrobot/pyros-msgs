@@ -150,7 +150,7 @@ class CodePoint(object):
 
 class Any(object):  # Any has the same meaning as a set of accepters...
     def __init__(self, *at):
-        assert all(isinstance(aet, (Accepter, Array, MinMax, CodePoint)) for aet in at)  # Note Any makes sense only for Accepter
+        assert all(isinstance(aet, (Accepter, Array, MinMax, CodePoint, Any)) for aet in at)  # Note Any makes sense only for Accepter
         self.at = {st for st in at}
 
     def __call__(self, v):
