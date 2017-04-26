@@ -58,7 +58,7 @@ rosfield_typechecker = {
 }
 
 
-def typechecker_from_rosfield_type(slot_type):
+def typechecker_from_rosfield_type(slot_type, ignored_slots=None):
     """
     Retrieves an actual type tuple based on the ros type string
     :param slot_type: the ros type string
@@ -81,6 +81,8 @@ def typechecker_from_rosfield_type(slot_type):
     ([<function <lambda> at 0x...>], ({'secs': <type 'int'>, 'nsecs': <type 'int'>}, [{'secs': <type 'int'>, 'nsecs': <type 'int'>}]))
     """
 
+    ignored_slots = ignored_slots or []
+
     if slot_type in rosfield_typechecker:  # basic field type, end of recursion
         # simple type (check genpy.base.is_simple())
         return rosfield_typechecker.get(slot_type)
@@ -102,13 +104,14 @@ def typechecker_from_rosfield_type(slot_type):
         slots = {
             f: typechecker_from_rosfield_type(ft)
             for f, ft in zip(rosmsg_type.__slots__, rosmsg_type._slot_types)
-            # TODO : filter special fields ?
+            if not f in ignored_slots
         }
 
         def sanitizer(value=None):  # we do not need default value here, no optional nested
             return rosmsg_type(**{
                 k: tc(getattr(value, k)) if value else tc()  # we pass a subvalue to the sanitizer of the member type
                 for k, tc in slots.items()
+                if not k in ignored_slots
             })
         # TODO : to be able to use this from __init__ in messages types, we need to return only the dictionnary.
 
@@ -141,6 +144,6 @@ rosfield_typechecker.update({
 
 
 
-# TODO : common message types :
+# TODO : common message types with "special type" when we have to rely on custom typechecker construction:
 # - std_msgs/Header
 # -
