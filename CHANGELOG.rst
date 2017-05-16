@@ -2,8 +2,8 @@
 Changelog for package pyros_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.1 (2017-05-16)
+------------------
 * Merge pull request `#16 <https://github.com/asmodehn/pyros-msgs/issues/16>`_ from yotabits/nested_implement
   Added test for time in opt_as_nested
 * now nesting using type checker method instead of duplicating it.
