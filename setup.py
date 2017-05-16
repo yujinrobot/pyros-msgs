@@ -240,7 +240,6 @@ setuptools.setup(name='pyros_msgs',
         'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
         'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
     ],
-    namespace_packages=['pyros_msgs'],
     # this is better than using package data ( since behavior is a bit different from distutils... )
     include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources

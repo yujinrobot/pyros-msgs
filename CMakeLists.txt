@@ -21,14 +21,15 @@ find_package(catkin REQUIRED COMPONENTS
 # MESSAGES
 #####
 
-add_message_files(
-  DIRECTORY
-    msg
-  FILES
-    OptionalFields.msg
-)
-
-generate_messages(DEPENDENCIES std_msgs)
+# THIS HAS BEEN PREGENERATED
+# add_message_files(
+#   DIRECTORY
+#     msg
+#   FILES
+#     OptionalFields.msg
+# )
+#
+# generate_messages(DEPENDENCIES std_msgs)
 
 
 
