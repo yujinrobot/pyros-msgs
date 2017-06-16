@@ -8,6 +8,26 @@ Testing executing rosmsg_generator directly (like setup.py would)
 
 import os
 import runpy
+import logging.config
+
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'default': {
+            'format': '%(asctime)s %(levelname)s %(name)s %(message)s'
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        }
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+})
 
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
 

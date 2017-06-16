@@ -4,6 +4,8 @@ import imp
 
 import py
 
+from pyros_msgs.importer import rosmsg_generator
+
 """
 A module to setup custom importer for .msg and .srv files
 Upon import, it will first find the .msg file, then generate the python module for it, then load it.
@@ -27,9 +29,13 @@ import logging
 
 
 class ROSLoader(object):
-    def __init__(self, generator, ext):
-        self.ext = ext
-        self.generator = generator
+
+    def __init__(self, path_entry):
+        self.path_entry = path_entry
+
+    # def __init__(self, generator, ext):
+    #     self.ext = ext
+    #     self.generator = generator
 
     # defining this to benefit from backward compat import mechanism in python 3.X
     def get_filename(self, name):
@@ -43,21 +49,6 @@ class ROSLoader(object):
 
 
         return
-
-# https://pymotw.com/2/sys/imports.html#sys-imports
-class NoisyImportFinder(object):
-    PATH_TRIGGER = 'NoisyImportFinder_PATH_TRIGGER'
-
-    def __init__(self, path_entry):
-        print('Checking NoisyImportFinder support for %s' % path_entry)
-        if path_entry != self.PATH_TRIGGER:
-            print('NoisyImportFinder does not work for %s' % path_entry)
-            raise ImportError()
-        return
-
-    def find_module(self, fullname, path=None):
-        print('NoisyImportFinder looking for "%s"' % fullname)
-        return None
 
 # https://pymotw.com/3/sys/imports.html#sys-imports
 
@@ -107,95 +98,96 @@ if sys.version_info >= (3, ):
             print('ROSImportFinder looking for "%s"' % fullname)
             return None
 
-elif sys.version_info >= (2, 7, 12):
-    class ROSImportFinder(object):
-        PATH_TRIGGER = 'ROSFinder_PATH_TRIGGER'
-
-        def __init__(self, path_entry):
-            self.logger = logging.getLogger(__name__)
-            self.logger.debug('Checking ROSImportFinder support for %s' % path_entry)
-            if path_entry != self.PATH_TRIGGER:
-                self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
-                raise ImportError()
-
-            self.loaders = {
-                '.srv': ROSLoader(genpy.generator.SrvGenerator(), 'srv'),
-                '.msg': ROSLoader(genpy.generator.MsgGenerator(), 'msg')
-            }
-
-        def find_module(self, fullname, path=None):
-            print('ROSImportFinder looking for "%s"' % fullname)
-            return None
+# elif sys.version_info >= (2, 7, 12):
+#     class ROSImportFinder(object):
+#         PATH_TRIGGER = 'ROSFinder_PATH_TRIGGER'
+#
+#         def __init__(self, path_entry):
+#             self.logger = logging.getLogger(__name__)
+#             self.logger.debug('Checking ROSImportFinder support for %s' % path_entry)
+#             if path_entry != self.PATH_TRIGGER:
+#                 self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
+#                 raise ImportError()
+#
+#             self.loaders = {
+#                 '.srv': ROSLoader(genpy.generator.SrvGenerator(), 'srv'),
+#                 '.msg': ROSLoader(genpy.generator.MsgGenerator(), 'msg')
+#             }
+#
+#         def find_module(self, fullname, path=None):
+#             print('ROSImportFinder looking for "%s"' % fullname)
+#             return None
 
 else:
     class ROSImportFinder(object):
-
-        PATH_TRIGGER = 'ROSFinder_PATH_TRIGGER'
-
+        """Find ROS message/service modules"""
         def __init__(self, path_entry=None):
+            # First we need to skip all the cases that we are not concerned with
+
+            if path_entry is None:  # called on obsolete python (< 2.7.12)
+                pass
+            # else path_entry contains the path where the finder has been instanciated...
+            elif not os.path.exists(os.path.join(path_entry, 'msg')) and not os.path.exists(os.path.join(path_entry, 'srv')):
+                raise ImportError  # we raise if we cannot find msg or srv folder
+
+            # Then we can do the initialisation
             self.logger = logging.getLogger(__name__)
             self.logger.debug('Checking ROSImportFinder support for %s' % path_entry)
-            if path_entry is None:  # called on very old python (< 2.7.12)
-                pass
-            elif path_entry != self.PATH_TRIGGER:  # python following correct PEP ( 302 ?)
-                self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
-                raise ImportError()
 
-            self.loaders = {
-                '.srv': ROSLoader(genpy.generator.SrvGenerator(), 'srv'),
-                '.msg': ROSLoader(genpy.generator.MsgGenerator(), 'msg')
-            }
+            self.path_entry = path_entry
+
+
 
         def find_module(self, name, path=None):
             self.logger.debug('ROSImportFinder looking for "%s"' % name)
 
+            # on 2.7
+            path = path or self.path_entry
+
+
             # implementation inspired from pytest.rewrite
             names = name.rsplit(".", 1)
             lastname = names[-1]
-            pth = None
-            if path is not None:
-                # Starting with Python 3.3, path is a _NamespacePath(), which
-                # causes problems if not converted to list.
-                path = list(path)
-                if len(path) == 1:
-                    pth = path[0]
 
 
-            if pth is None:
+            if not os.path.exists(os.path.join(path, lastname)):
+                raise ImportError
+            elif os.path.isdir(os.path.join(path, lastname)):
+
+                rosf = [f for f in os.listdir(os.path.join(path, lastname)) if os.path.splitext(f)[-1] in ['.msg', '.srv']]
+
+                if rosf:
+                    return ROSLoader(path_entry=os.path.join(path, lastname))
+
+                # # package case
+                # for root, dirs, files in  os.walk(path, topdown=True):
+                #
+                #     #rosmsg_generator.genmsgsrv_py(msgsrv_files=[f for f in files if ], package=package, outdir_pkg=outdir_pkg, includepath=include_path, ns_pkg=ns_pkg)
+                #
+                #     # generated_msg = genmsg_py(msg_files=[f for f in files if f.endswith('.msg')],
+                #     #                           package=package,
+                #     #                           outdir_pkg=outdir_pkg,
+                #     #                           includepath=includepath,
+                #     #                           initpy=True)  # we always create an __init__.py when called from here.
+                #     # generated_srv = gensrv_py(srv_files=[f for f in files if f.endswith('.srv')],
+                #     #                           package=package,
+                #     #                           outdir_pkg=outdir_pkg,
+                #     #                           includepath=includepath,
+                #     #                           initpy=True)  # we always create an __init__.py when called from here.
+                #
+                #     for name in dirs:
+                #         print(os.path.join(root, name))
+                #         # rosmsg_generator.genmsgsrv_py(msgsrv_files=msgsrvfiles, package=package, outdir_pkg=outdir_pkg, includepath=include_path, ns_pkg=ns_pkg)
+
+            elif os.path.isfile(os.path.join(path, lastname)):
+                # module case
+                pass
+
+            return None
 
 
-                try:
-                    fd, fn, desc = imp.find_module(lastname, path)
-                except ImportError:
-                    return None
-                if fd is not None:
-                    fd.close()
 
 
-
-
-                tp = desc[2]
-                if tp == imp.PY_COMPILED:
-                    if hasattr(imp, "source_from_cache"):
-                        try:
-                            fn = imp.source_from_cache(fn)
-                        except ValueError:
-                            # Python 3 doesn't like orphaned but still-importable
-                            # .pyc files.
-                            fn = fn[:-1]
-                    else:
-                        fn = fn[:-1]
-                elif tp != imp.PY_SOURCE:
-                    # Don't know what this is.
-                    return None
-            else:
-                fn = os.path.join(pth, name.rpartition(".")[2] + ".py")
-
-            # fn_pypath = py.path.local(fn)
-            # if not self._should_rewrite(name, fn_pypath, state):
-            #     return None
-            #
-            # self._rewritten_names.add(name)
 
     # def find_module(self, name, path=None):
     #     """
@@ -328,7 +320,7 @@ def activate():
     for hook in sys.path_hooks:
         print('Path hook: {}'.format(hook))
 
-    sys.path.insert(0, ROSImportFinder.PATH_TRIGGER)
+    #sys.path.insert(0, ROSImportFinder.PATH_TRIGGER)
 
 
 def deactivate():
@@ -337,4 +329,4 @@ def deactivate():
     else:  # older (trusty) version
         sys.path_hooks.remove(_ros_finder_instance_obsolete_python)
 
-    sys.path.remove(ROSImportFinder.PATH_TRIGGER)
+    #sys.path.remove(ROSImportFinder.PATH_TRIGGER)
