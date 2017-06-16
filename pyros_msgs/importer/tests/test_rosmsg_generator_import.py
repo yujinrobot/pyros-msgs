@@ -1,12 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
-import importlib
-
 """
 Testing executing rosmsg_generator directly (like setup.py would)
 """
 
 import os
+import sys
 import runpy
 import logging.config
 
@@ -31,6 +30,8 @@ logging.config.dictConfig({
 
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
 
+import importlib
+
 # Importing importer module
 from pyros_msgs.importer import rosmsg_importer
 
@@ -47,21 +48,104 @@ def teardown_module():
 # https://pymotw.com/3/importlib/index.html
 # https://pymotw.com/2/importlib/index.html
 
-def test_importlib_msg_module_absolute():
+if sys.version_info > (3, 4):
+    import importlib.util
+    # REF : https://docs.python.org/3.6/library/importlib.html#approximating-importlib-import-module
+    # Useful to display details when debugging...
+    def import_module(name, package=None):
+        """An approximate implementation of import."""
+        absolute_name = importlib.util.resolve_name(name, package)
+        try:
+            return sys.modules[absolute_name]
+        except KeyError:
+            pass
+
+        path = None
+        if '.' in absolute_name:
+            parent_name, _, child_name = absolute_name.rpartition('.')
+            parent_module = import_module(parent_name)
+            path = parent_module.spec.submodule_search_locations  # this currently breaks (probably because of pytest custom importer ? )
+        for finder in sys.meta_path:
+            spec = finder.find_spec(absolute_name, path)
+            if spec is not None:
+                break
+        else:
+            raise ImportError('No module named {absolute_name!r}'.format(**locals()))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[absolute_name] = module
+        if path is not None:
+            setattr(parent_module, child_name, module)
+        return module
+
+
+if sys.version_info > (3, 4):
+    import importlib.util
+
+    # Adapted from : https://docs.python.org/3.6/library/importlib.html#approximating-importlib-import-module
+    # Useful to debug details...
+    def import_module(name, package=None):
+        # using find_spec to use our finder
+        spec = importlib.util.find_spec(name, package)
+
+        # path = None
+        # if '.' in absolute_name:
+        #     parent_name, _, child_name = absolute_name.rpartition('.')
+        #     # recursive import call
+        #     parent_module = import_module(parent_name)
+        #     # getting the path instead of relying on spec (not managed by pytest it seems...)
+        #     path = [os.path.join(p, child_name) for p in parent_module.__path__ if os.path.exists(os.path.join(p, child_name))]
+
+        # getting spec with importlib.util (instead of meta path finder to avoid uncompatible pytest finder)
+        #spec = importlib.util.spec_from_file_location(absolute_name, path[0])
+        parent_module = None
+        child_name = None
+        if spec is None:
+            # We didnt find anything, but this is expected on ros packages that haven't been generated yet
+            if '.' in name:
+                parent_name, _, child_name = name.rpartition('.')
+                # recursive import call
+                parent_module = import_module(parent_name)
+                # we can check if there is a module in there..
+                path = [os.path.join(p, child_name)
+                        for p in parent_module.__path__._path
+                        if os.path.exists(os.path.join(p, child_name))]
+                # we attempt to get the spec from the first found location
+                while path and spec is None:
+                    spec = importlib.util.spec_from_file_location(name, path[0])
+                    path[:] = path[1:]
+            else:
+                raise ImportError
+
+        # checking again in case spec has been modified
+        if spec is not None:
+            if spec.name not in sys.modules:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                sys.modules[name] = module
+            if parent_module is not None and child_name is not None:
+                setattr(parent_module, child_name, sys.modules[name])
+            return sys.modules[name]
+        else:
+            raise ImportError
+else:
+    def import_module(name, package=None):
+        return importlib.import_module(name=name, package=package)
+
+
+def test_import_msg_module_absolute():
     # Verify that files exists and are importable
-    if hasattr(importlib, 'find_loader'):  # recent version of import lib
+    if hasattr(importlib, '__import__'):
+        msg_mod = importlib.__import__('pyros_msgs.importer.tests.msg.TestMsg',)
+    else:
+        import pyros_msgs.importer.tests.msg.TestMsg as msg_mod
 
-        pkg_loader = importlib.find_loader('test_gen_msgs')
-        pkg = pkg_loader.load_module()
+    assert msg_mod is not None
 
-        subpkg_loader = importlib.find_loader('msg', pkg.__path__)
-        subpkg = subpkg_loader.load_module()
 
-        loader = importlib.find_loader('TestMsg', subpkg.__path__)
-        msg_mod = subpkg_loader.load_module()
-
-    else:  # old version
-        msg_mod = importlib.import_module('pyros_msgs.importer.tests.msg.TestMsg')
+def test_importlib_msg_module_absolute():
+    # Verify that files exists and are dynamically importable
+    msg_mod = import_module('pyros_msgs.importer.tests.msg.TestMsg')
 
     if hasattr(importlib, 'reload'):  # recent version of importlib
         # attempting to reload

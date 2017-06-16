@@ -147,7 +147,7 @@ class ROSLoader(object):
         source = self.get_source(fullname)
 
         self.logger.debug('execing source...')
-        exec source in mod.__dict__
+        exec(source, mod.__dict__)
         self.logger.debug('done')
         return mod
 
@@ -177,23 +177,39 @@ class ROSLoader(object):
 
 
 
-if sys.version_info >= (3, ):
-    class ROSImportFinder(object):
+if sys.version_info >= (3, 5):
+
+    import importlib.abc
+
+    class ROSImportFinder(importlib.abc.PathEntryFinder):
         # TODO : we can use this to enable ROS Finder only on relevant paths (ros distro paths + dev workspaces) from sys.path
         PATH_TRIGGER = 'ROSFinder_PATH_TRIGGER'
 
         def __init__(self, path_entry):
 
+            super(ROSImportFinder, self).__init__()
+
+            # First we need to skip all the cases that we are not concerned with
+
+            # if path_entry != self.PATH_TRIGGER:
+            #     self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
+            #     raise ImportError()
+
+            # path_entry contains the path where the finder has been instantiated...
+            if not os.path.exists(os.path.join(path_entry, 'msg')) and not os.path.exists(
+                    os.path.join(path_entry, 'srv')):
+                raise ImportError  # we raise if we cannot find msg or srv folder
+
+            # Then we can do the initialisation
             self.logger = logging.getLogger(__name__)
             self.logger.debug('Checking ROSImportFinder support for %s' % path_entry)
-            if path_entry != self.PATH_TRIGGER:
-                self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
-                raise ImportError()
 
-            self.loaders = {
-                '.srv': ROSLoader(genpy.generator.SrvGenerator(), 'srv'),
-                '.msg': ROSLoader(genpy.generator.MsgGenerator(), 'msg')
-            }
+            self.path_entry = path_entry
+
+
+        def find_spec(self, fullname, target = None):
+            print('ROSImportFinder looking for "%s"' % fullname)
+            return None
 
         def find_module(self, fullname, path=None):
             print('ROSImportFinder looking for "%s"' % fullname)
@@ -433,7 +449,7 @@ def activate():
         print('Path hook: {}'.format(hook))
 
     # TODO : mix that with ROS PYTHONPATH shenanigans... to enable the finder only for 'ROS aware' paths
-    #sys.path.insert(0, ROSImportFinder.PATH_TRIGGER)
+    # sys.path.insert(1, ROSImportFinder.PATH_TRIGGER)
 
 
 def deactivate():
@@ -443,4 +459,4 @@ def deactivate():
     #     sys.path_hooks.remove(_ros_finder_instance_obsolete_python)
 
     # TODO : mix that with ROS PYTHONPATH shenanigans... to enable the finder only for 'ROS aware' paths
-    #sys.path.remove(ROSImportFinder.PATH_TRIGGER)
+    # sys.path.remove(ROSImportFinder.PATH_TRIGGER)
