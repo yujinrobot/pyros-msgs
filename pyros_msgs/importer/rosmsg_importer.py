@@ -181,9 +181,8 @@ if sys.version_info >= (3, 5):
 
     import importlib.abc
 
-    class ROSImportFinder(importlib.abc.PathEntryFinder):
+    class ROSImportFinder(object):  #importlib.abc.PathEntryFinder):
         # TODO : we can use this to enable ROS Finder only on relevant paths (ros distro paths + dev workspaces) from sys.path
-        PATH_TRIGGER = 'ROSFinder_PATH_TRIGGER'
 
         def __init__(self, path_entry):
 
@@ -196,8 +195,7 @@ if sys.version_info >= (3, 5):
             #     raise ImportError()
 
             # path_entry contains the path where the finder has been instantiated...
-            if not os.path.exists(os.path.join(path_entry, 'msg')) and not os.path.exists(
-                    os.path.join(path_entry, 'srv')):
+            if not os.path.exists(os.path.join(path_entry, 'msg')) and not os.path.exists(os.path.join(path_entry, 'srv')):
                 raise ImportError  # we raise if we cannot find msg or srv folder
 
             # Then we can do the initialisation
@@ -214,6 +212,7 @@ if sys.version_info >= (3, 5):
         def find_module(self, fullname, path=None):
             print('ROSImportFinder looking for "%s"' % fullname)
             return None
+
 
 # elif sys.version_info >= (2, 7, 12):
 #     class ROSImportFinder(object):
@@ -303,8 +302,8 @@ else:
             elif os.path.isfile(os.path.join(path, lastname)):
                 # module case
                 return ROSLoader(
-                    msgsrv_files=rosf,
-                    path_entry=os.path.join(path, lastname),
+                    msgsrv_files=os.path.join(path, lastname),
+                    path_entry=path,
                     package=name,
                     outdir_pkg=path,  # TODO: if we cannot write into source, use tempfile
                     # includepath=,
@@ -442,14 +441,12 @@ else:
 def activate():
     #if sys.version_info >= (2, 7, 12):  # TODO : which exact version matters ?
     sys.path_hooks.append(ROSImportFinder)
+
     # else:  # older (trusty) version
     #     sys.path_hooks.append(_ros_finder_instance_obsolete_python)
 
     for hook in sys.path_hooks:
         print('Path hook: {}'.format(hook))
-
-    # TODO : mix that with ROS PYTHONPATH shenanigans... to enable the finder only for 'ROS aware' paths
-    # sys.path.insert(1, ROSImportFinder.PATH_TRIGGER)
 
 
 def deactivate():
@@ -458,5 +455,5 @@ def deactivate():
     # else:  # older (trusty) version
     #     sys.path_hooks.remove(_ros_finder_instance_obsolete_python)
 
-    # TODO : mix that with ROS PYTHONPATH shenanigans... to enable the finder only for 'ROS aware' paths
-    # sys.path.remove(ROSImportFinder.PATH_TRIGGER)
+
+# TODO : a meta finder could find a full ROS distro...
