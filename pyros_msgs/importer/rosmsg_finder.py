@@ -21,13 +21,9 @@ TODO...
 import os
 import sys
 
-# This will take the ROS distro version if ros has been setup
-import genpy.generator
-import genpy.generate_initpy
-
 import logging
 
-
+from .rosmsg_loader import ROSMsgLoader, ROSSrvLoader
 
 if sys.version_info >= (3, 4):
 
@@ -38,13 +34,20 @@ if sys.version_info >= (3, 4):
 
     class ROSFileFinder(importlib.machinery.FileFinder):
 
-        def __init__(self, path, *loader_details):
+        def __init__(self, path):
             """
             Finder to get ROS specific files and directories (message and services files).
             It need to be inserted in sys.path_hooks before FileFinder, since these are Files but not python ones.
 
             :param path_entry: the msg or srv directory path (no finder should have been instantiated yet)
             """
+
+            # Declaring our loaders and the different extensions
+            loader_details = [
+                (ROSMsgLoader, ['.msg']),
+                (ROSSrvLoader, ['.srv']),
+            ]
+
             super(ROSFileFinder, self).__init__(path, *loader_details)
 
             # First we need to skip all the cases that we are not concerned with
@@ -100,13 +103,37 @@ if sys.version_info >= (3, 4):
             self.logger.debug('Checking ROSFileFinder support for %s' % path)
 
 
+        def _get_spec(self, loader_class, fullname, path, smsl, target):
+            loader = loader_class(fullname, path)
+            return importlib.util.spec_from_file_location(fullname, path, loader=loader,
+                                           submodule_search_locations=smsl)
+
         def find_spec(self, fullname, target=None):
-            print('ROSImportFinder looking for "%s"' % fullname)
             """
+            Try to find a spec for the specified module.
+                    Returns the matching spec, or None if not found.
             :param fullname: the name of the package we are trying to import
             :param target: what we plan to do with it
             :return:
             """
+
+            print('ROSFileFinder looking for "%s"' % fullname)
+            tail_module = fullname.rpartition('.')[2]
+
+            # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
+            base_path = os.path.join(self.path, tail_module)
+            if os.path.isdir(base_path):
+                found_one = False
+                loader = None
+                for suffix, loader_class in self._loaders:
+                    loader = loader_class if [f for f in os.listdir(base_path) if f.endswith(suffix)] else loader
+                # DO we need one or two loaders ? (package logic is same, but msg or srv differs after...)
+                spec = self._get_spec(loader, fullname, base_path, [base_path], target)
+            else:
+                # we use default behavior
+                spec = super(ROSFileFinder, self).find_spec(fullname=fullname, target=target)
+            return spec
+
             # TODO: read PEP 420 :)
             last_mile = fullname.split('.')[-1]
 
