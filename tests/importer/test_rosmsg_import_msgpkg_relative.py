@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 """
-Testing executing rosmsg_generator directly (like setup.py would)
+Testing executing rosmsg_import outside of the package, otherwise the package is already imported.
 """
 
 import os
@@ -35,7 +35,7 @@ import unittest
 import importlib
 
 # Importing importer module
-from pyros_msgs.importer import rosmsg_importer
+from pyros_msgs.importer import rosmsg_finder
 
 # importlib
 # https://pymotw.com/3/importlib/index.html
@@ -150,112 +150,44 @@ def print_importers():
         print('%s: %r' % (name, cache_value))
 
 
-class TestImportAnotherMsg(unittest.TestCase):
+class TestImportRelativeMsgPkg(unittest.TestCase):
+    """Testing custom ROS importer with path already existing and into sys.path"""
+
     @classmethod
     def setUpClass(cls):
-        # trying to avoid cache pollution of consecutive tests..
-        if hasattr(importlib, 'invalidate_caches'):
-            importlib.invalidate_caches()
-        rosmsg_importer.activate()
+        # We need to be before FileFinder to be able to find our (non .py[c]) files
+        # inside, maybe already imported, python packages...
+        sys.path_hooks.insert(1, rosmsg_finder.ROSFileFinder)
+        # we do not need to append any path (since we rely on paths already present, and package already found)
 
     @classmethod
     def tearDownClass(cls):
-        rosmsg_importer.deactivate()
+        # CAREFUL : Even though we remove the path from sys.path,
+        # initialized finders will remain in sys.path_importer_cache
+        sys.path_hooks.remove(rosmsg_finder.ROSFileFinder)
 
-    def test_import_absolute(self):
+    def test_import_absolute_pkg(self):
         print_importers()
         # Verify that files exists and are importable
-        import std_msgs.msg.Bool as msg_bool
+        # Note : this requires a metapath finder
+        import pyros_msgs.importer.tests.msg as msg_pkg
+        self.assertTrue(msg_pkg is not None)
 
-        assert msg_bool is not None
-
-    def test_import_from(self):
-        print_importers()
-        # Verify that files exists and are importable
-        from std_msgs.msg import Bool as msg_bool
-
-        assert msg_bool is not None
+        msg_mod = msg_pkg.TestMsg
+        self.assertTrue(msg_mod is not None)
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute(self):
         # Verify that files exists and are importable
-        msg_bool = importlib.__import__('std_msgs.msg.Bool',)
+        msg_pkg = importlib.__import__('pyros_msgs.importer.tests.msg',)
 
-        assert msg_bool is not None
+        self.assertTrue(msg_pkg is not None)
 
-    @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'),
-                     reason="importlib does not have attribute import_module")
+    @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'), reason="importlib does not have attribute find_loader or load_module")
     def test_importlib_loadmodule_absolute(self):
         # Verify that files exists and are dynamically importable
-        pkg_list = 'std_msgs.msg.Bool'.split('.')[:-1]
-        mod_list = 'std_msgs.msg.Bool'.split('.')[1:]
-        pkg = None
-        for pkg_name, mod_name in zip(pkg_list, mod_list):
-            pkg_loader = importlib.find_loader(pkg_name, pkg.__path__ if pkg else None)
-            pkg = pkg_loader.load_module(mod_name)
-
-        msg_mod = pkg
-
-        if hasattr(importlib, 'reload'):  # recent version of importlib
-            # attempting to reload
-            importlib.reload(msg_mod)
-        else:
-            pass
-
-    # TODO : dynamic using module_spec (python 3.5)
-
-    @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
-    def test_importlib_importmodule_absolute(self):
-        # Verify that files exists and are dynamically importable
-        msg_bool = importlib.import_module('std_msgs.msg.Bool')
-
-        if hasattr(importlib, 'reload'):  # recent version of importlib
-            # attempting to reload
-            importlib.reload(msg_bool)
-        else:
-            pass
-
-        assert msg_bool is not None
-
-
-class TestImportSameMsg(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # trying to avoid cache pollution of consecutive tests..
-        if hasattr(importlib, 'invalidate_caches'):
-            importlib.invalidate_caches()
-        rosmsg_importer.activate()
-
-    @classmethod
-    def tearDownClass(cls):
-        rosmsg_importer.deactivate()
-
-    def test_import_absolute(self):
-        print_importers()
-        # Verify that files exists and are importable
-        import pyros_msgs.importer.tests.msg.TestMsg as msg_mod
-
-        assert msg_mod is not None
-
-    def test_import_relative(self):
-        print_importers()
-        # Verify that files exists and are importable
-        from .msg import TestMsg as msg_mod
-
-        assert msg_mod is not None
-
-    @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    def test_importlib_import_absolute(self):
-        # Verify that files exists and are importable
-        msg_mod = importlib.__import__('pyros_msgs.importer.tests.msg.TestMsg',)
-
-        assert msg_mod is not None
-
-    @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'), reason="importlib does not have attribute import_module")
-    def test_importlib_loadmodule_absolute(self):
-        # Verify that files exists and are dynamically importable
-        pkg_list = 'pyros_msgs.importer.tests.msg.TestMsg'.split('.')[:-1]
-        mod_list = 'pyros_msgs.importer.tests.msg.TestMsg'.split('.')[1:]
+        pkg_list = 'pyros_msgs.importer.tests.msg'.split('.')[:-1]
+        mod_list = 'pyros_msgs.importer.tests.msg'.split('.')[1:]
         pkg = None
         for pkg_name, mod_name in zip(pkg_list, mod_list):
             pkg_loader = importlib.find_loader(pkg_name, pkg.__path__ if pkg else None)
@@ -274,14 +206,17 @@ class TestImportSameMsg(unittest.TestCase):
     @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_absolute(self):
         # Verify that files exists and are dynamically importable
-        msg_mod = importlib.import_module('pyros_msgs.importer.tests.msg.TestMsg')
+        msg_pkg = importlib.import_module('pyros_msgs.importer.tests.msg')
+
+        self.assertTrue(msg_pkg is not None)
 
         if hasattr(importlib, 'reload'):  # recent version of importlib
             # attempting to reload
-            importlib.reload(msg_mod)
+            importlib.reload(msg_pkg)
         else:
             pass
 
+        self.assertTrue(msg_pkg is not None)
 
 
 # def test_importlib_msg_module_relative():
