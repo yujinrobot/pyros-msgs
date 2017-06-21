@@ -172,13 +172,16 @@ class TestImportRelativeMsgModule(unittest.TestCase):
         import pyros_msgs.importer.tests.msg.TestMsg as msg_mod
 
         self.assertTrue(msg_mod is not None)
+        self.assertTrue(msg_mod._type == 'pyros_msgs/TestMsg')
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute(self):
         # Verify that files exists and are importable
-        msg_mod = importlib.__import__('pyros_msgs.importer.tests.msg.TestMsg',)
+        importlib.__import__('pyros_msgs.importer.tests.msg.TestMsg',)
+        msg_mod = sys.modules['pyros_msgs.importer.tests.msg.TestMsg']
 
         self.assertTrue(msg_mod is not None)
+        self.assertTrue(msg_mod._type == 'pyros_msgs/TestMsg')
 
     @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'), reason="importlib does not have attribute find_loader or load_module")
     def test_importlib_loadmodule_absolute(self):

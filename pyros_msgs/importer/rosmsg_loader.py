@@ -5,6 +5,8 @@ import importlib
 import site
 import tempfile
 
+import shutil
+
 from pyros_msgs.importer import rosmsg_generator
 
 """
@@ -53,126 +55,78 @@ if sys.version_info >= (3, 4):
     import importlib.abc
     import importlib.machinery
 
-    # To do only once when starting up
-    rosimport_path = os.path.join(tempfile.gettempdir(), 'rosimport')
+    # To do only once when starting up (for this process)
+    rosimport_path = os.path.join(tempfile.gettempdir(), 'rosimport', str(os.getpid()))
     if os.path.exists(rosimport_path):
-        os.removedirs(rosimport_path)
+        shutil.rmtree(rosimport_path)
     os.makedirs(rosimport_path)
 
-    class ROSMsgLoader(importlib.abc.SourceLoader):
-
+    class ROSMsgLoader(importlib.machinery.SourceFileLoader):
 
         def __init__(self, fullname, path):
 
             self.logger = logging.getLogger(__name__)
             self.path = path
 
-            self.msgsrv_files = [f for f in os.listdir(self.path) if f.endswith('.msg')]
-
             self.rospackage = fullname.partition('.')[0]
+            # We should reproduce package structure in generated file structure
+            dirlist = self.path.split(os.sep)
+            pkgidx = dirlist[::-1].index(self.rospackage)
+            indirlist = [p for p in dirlist[:len(dirlist)-pkgidx-1:-1] if p != 'msg' and not p.endswith('.msg')]
+            self.outdir_pkg = os.path.join(rosimport_path, self.rospackage, *indirlist[::-1])
 
-            self.outdir_pkg = tempfile.mkdtemp(prefix=self.rospackage, dir=rosimport_path)
+            # : hack to be able to import a generated class (if requested)
+            self.requested_class = None
 
-            # TODO : we need to determine that from the loader
-            self.includepath = []
-            self.ns_pkg = False  # doesnt seem needed yet and is overall safer...
+            if os.path.isdir(self.path):
 
-            gen = rosmsg_generator.genmsgsrv_py(
-                msgsrv_files=self.msgsrv_files,
-                package=self.rospackage,
-                outdir_pkg=self.outdir_pkg,
-                includepath=self.includepath,
-                ns_pkg=self.ns_pkg
-            )
+                # TODO : we need to determine that from the loader
+                self.includepath = []
+                self.ns_pkg = False  # namespace can prevent just having a 'msg' folder in a python package
 
-        def get_data(self, path):
-            """Returns the bytes from the source code (will be used to generate bytecode)"""
-            self.get_filename()
-            return None
+                # TODO : dynamic in memory generation (we do not need the file ultimately...)
+                self.gen_msgs = rosmsg_generator.genmsg_py(
+                    msg_files=[os.path.join(self.path, f) for f in os.listdir(self.path)],  # every file not ending in '.msg' will be ignored
+                    package=self.rospackage,
+                    outdir_pkg=self.outdir_pkg,
+                    includepath=self.includepath,
+                    initpy=True  # we always create an __init__.py when called from here.
+                )
+                init_path = None
+                for pyf in self.gen_msgs:
+                    if pyf.endswith('__init__.py'):
+                        init_path = pyf
+
+                if not init_path:
+                    raise ImportError("__init__.py file not found after python msg package generation")
+
+                # relying on usual source file loader since we have generated normal python code
+                super(ROSMsgLoader, self).__init__(fullname, init_path)
+
+            elif os.path.isfile(self.path):
+                # The file should have already been generated (by the loader for a msg package)
+                # Note we do not want to rely on namespace packages here, since they are not standardized for python2,
+                # and they can prevent some useful usecases.
+
+                # Hack to be able to "import generated classes"
+                modname = fullname.rpartition('.')[2]
+                if modname.startswith('_'):  # the init importing
+                    filepath = os.path.join(self.outdir_pkg, 'msg', modname + '.py')
+                else:
+                    self.requested_class = modname
+                    filepath = os.path.join(self.outdir_pkg, 'msg', '_' + modname + '.py')
+                # relying on usual source file loader since we have previously generated normal python code
+                super(ROSMsgLoader, self).__init__(fullname, filepath)
+
+        def exec_module(self, module):
+            super(ROSMsgLoader, self).exec_module(module=module)
+
+            # looking for a class in the module to import if it was requested.
+            if self.requested_class and self.requested_class in vars(module):
+                # we replace the module with the actual class (the module is still referenced with '_' at the beginning
+                sys.modules[self.name] = getattr(module, self.requested_class)
 
 
-        def get_source(self, fullname):
-            self.logger.debug('loading source for "%s" from msg' % fullname)
-            try:
-
-                self._generate()
-
-                # with shelve_context(self.path_entry) as db:
-                #     key_name = _get_key_name(fullname, db)
-                #     if key_name:
-                #         return db[key_name]
-                #     raise ImportError('could not find source for %s' % fullname)
-
-                pass
-
-
-            except Exception as e:
-                self.logger.debug('could not load source:', e)
-                raise ImportError(str(e))
-
-        # defining this to benefit from backward compat import mechanism in python 3.X
-        def get_filename(self, name):
-            """
-            Deterministic temporary filename.
-            :param name:
-            :return:
-            """
-            os.sep.join(name.split(".")) + '.' + self.ext
-
-            # def _get_filename(self, fullname):
-            #     # Make up a fake filename that starts with the path entry
-            #     # so pkgutil.get_data() works correctly.
-            #     return os.path.join(self.path_entry, fullname)
-            #
-            # # defining this to benefit from backward compat import mechanism in python 3.X
-            # def is_package(self, name):
-            #     names = name.split(".")
-            #     parent_idx = len(names) -1
-            #     # trying to find a parent already loaded
-            #     while 0<= parent_idx < len(names) :
-            #         if names[parent_idx] in sys.modules: # we found a parent, we can get his path and go back
-            #             pass
-            #         else:  # parent not found, need to check its parent
-            #             parent_idx-=1
-            #
-            #
-            #     else:  # No loaded parent found, lets attempt to import it directly (searching in all sys.paths)
-            #
-            #         pass
-            #
-            #
-            #     return None  # TODO : implement check
-            #
-            # def load_module(self, fullname):
-            #
-            #     if fullname in sys.modules:
-            #         self.logger.debug('reusing existing module from previous import of "%s"' % fullname)
-            #         mod = sys.modules[fullname]
-            #     else:
-            #         self.logger.debug('creating a new module object for "%s"' % fullname)
-            #         mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
-            #
-            #     # Set a few properties required by PEP 302
-            #     mod.__file__ = self._get_filename(fullname)
-            #     mod.__name__ = fullname
-            #     mod.__path__ = self.path_entry
-            #     mod.__loader__ = self
-            #     mod.__package__ = '.'.join(fullname.split('.')[:-1])
-            #
-            #     if self.is_package(fullname):
-            #         self.logger.debug('adding path for package')
-            #         # Set __path__ for packages
-            #         # so we can find the sub-modules.
-            #         mod.__path__ = [self.path_entry]
-            #     else:
-            #         self.logger.debug('imported as regular module')
-            #
-            #     source = self.get_source(fullname)
-            #
-            #     self.logger.debug('execing source...')
-            #     exec(source, mod.__dict__)
-            #     self.logger.debug('done')
-            #     return mod
 
     class ROSSrvLoader(importlib.abc.SourceLoader):
 

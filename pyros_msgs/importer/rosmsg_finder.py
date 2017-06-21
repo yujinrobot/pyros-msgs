@@ -43,70 +43,16 @@ if sys.version_info >= (3, 4):
             """
 
             # Declaring our loaders and the different extensions
-            loader_details = [
+            self.extended_loader_details = [
                 (ROSMsgLoader, ['.msg']),
                 (ROSSrvLoader, ['.srv']),
             ]
 
-            super(ROSFileFinder, self).__init__(path, *loader_details)
-
-            # First we need to skip all the cases that we are not concerned with
-
-            # if path_entry != self.PATH_TRIGGER:
-            #     self.logger.debug('ROSImportFinder does not work for %s' % path_entry)
-            #     raise ImportError()
-
-            # Adding the share path (where we can find all packages and their messages)
-            # share_path = os.path.join(workspace_entry, 'share')
-            # if os.path.exists(share_path):
-            #     self.share_path = share_path
-            #
-            #     python_libpath = os.path.join(workspace_entry, 'lib',
-            #                                   'python' + sys.version_info.major + '.' + sys.version_info.minor)
-            #     if os.path.exists(python_libpath):
-            #         # adding python site directories for the ROS distro (to find python modules as usual with ROS)
-            #         if os.path.exists(os.path.join(python_libpath, 'dist-packages')):
-            #             site.addsitedir(os.path.join(python_libpath, 'dist-packages'))
-            #         if os.path.exists(os.path.join(python_libpath, 'site-packages')):
-            #             site.addsitedir(os.path.join(python_libpath, 'site-packages'))
-            #             # Note : here we want to keep a pure python logic to not pollute the environment (not like with pyros-setup)
-            #
-            #             # self.rospkgs = []
-            #             # for root, dirs, files in os.walk(self.share_path, topdown=False):
-            #             #     if 'package.xml' in files:  # we have found a ros package
-            #             #
-            #             #
-            #             #
-            #             #         self.rospkgs.append(root)
-            #             #         found_one = True
-            #             # if not found_one:
-            #             #     raise ImportError("No ROS package found in {0}".format(workspace_entry))
-            #
-            # else:  # this is not a workspace, maybe we are expected to get the package directly from source ?
-            #     found_one = False
-            #     self.src_rospkgs = []
-            #     for root, dirs, files in os.walk(workspace_entry, topdown=False):
-            #         if 'package.xml' in files:  # we have found a ros package
-            #             self.src_rospkgs.append(root)
-            #             found_one = True
-            #     if not found_one:
-            #         raise ImportError("No ROS package found in {0}".format(workspace_entry))
-
-            # # path_entry contains the path where the finder has been instantiated...
-            # if (not os.path.exists(path_entry) or  # non existent path
-            #     not os.path.basename(path_entry) in ['msg', 'srv']  # path not terminated with msg/srv (msg and srv inside python source)
-            # ):
-            #     raise ImportError  # we raise if we cannot find msg or srv folder
-
-            # Then we can do the initialisation
-            self.logger = logging.getLogger(__name__)
-            self.logger.debug('Checking ROSFileFinder support for %s' % path)
-
-
-        def _get_spec(self, loader_class, fullname, path, smsl, target):
-            loader = loader_class(fullname, path)
-            return importlib.util.spec_from_file_location(fullname, path, loader=loader,
-                                           submodule_search_locations=smsl)
+            # We rely on FileFinder, just with different loaders for different file extensions
+            super(ROSFileFinder, self).__init__(
+                path,
+                *self.extended_loader_details
+            )
 
         def find_spec(self, fullname, target=None):
             """
@@ -117,60 +63,34 @@ if sys.version_info >= (3, 4):
             :return:
             """
 
-            print('ROSFileFinder looking for "%s"' % fullname)
             tail_module = fullname.rpartition('.')[2]
-
+            loader = None
+            spec = None
             # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
             base_path = os.path.join(self.path, tail_module)
             if os.path.isdir(base_path):
-                found_one = False
-                loader = None
                 for suffix, loader_class in self._loaders:
-                    loader = loader_class if [f for f in os.listdir(base_path) if f.endswith(suffix)] else loader
+                    loader = loader_class(fullname, base_path) if [f for f in os.listdir(base_path) if f.endswith(suffix)] else loader
                 # DO we need one or two loaders ? (package logic is same, but msg or srv differs after...)
-                spec = self._get_spec(loader, fullname, base_path, [base_path], target)
+                if loader:
+                    spec = importlib.util.spec_from_file_location(fullname, base_path, loader=loader, submodule_search_locations=[base_path])
             else:
-                # we use default behavior
-                spec = super(ROSFileFinder, self).find_spec(fullname=fullname, target=target)
+                if tail_module.startswith('_'):  # consistent with generated module from msg package
+                    base_path = os.path.join(self.path, tail_module[1:])
+                    for suffix, loader_class in self._loaders:
+                        loader = loader_class(fullname, base_path + suffix) if os.path.isfile(base_path + suffix) else loader
+                    if loader:
+                        spec = importlib.util.spec_from_file_location(fullname, loader.path, loader=loader)
+                else:  # probably an attempt to import the class in the generated module (shortcutting python import mechanism)
+                    base_path = os.path.join(self.path, tail_module)
+                    for suffix, loader_class in self._loaders:
+                        loader = loader_class(fullname, base_path + suffix) if os.path.isfile(base_path + suffix) else loader
+                    if loader:
+                        spec = importlib.util.spec_from_file_location(fullname, loader.path, loader=loader)
+
+            # we use default behavior if we couldn't find a spec before
+            spec = spec or super(ROSFileFinder, self).find_spec(fullname=fullname, target=target)
             return spec
-
-            # TODO: read PEP 420 :)
-            last_mile = fullname.split('.')[-1]
-
-            for src_pkg in self.src_rospkgs:
-                if os.path.basename(src_pkg) == fullname:  # we found it
-                    return importlib.machinery.ModuleSpec(
-                        fullname,
-                        None,  # TODO loader
-                        origin=src_pkg,
-                        is_package=True
-                    )
-
-                    # If we get here, we need to find the package in a workspace...
-
-                    # If we can find it in share/ with messages, we can generate them.
-                    # good or bad idea ?
-            # Else, we can use the usual python import (since we added them to site)
-            #return importlib.util..(fullname).
-
-            for root, dirs, files in os.walk(self.workspace_entry, topdown=False):
-                if last_mile + '.msg' in files:
-                    return importlib.machinery.ModuleSpec(
-                        fullname,
-                        None,  # TODO loader
-                        origin=root,
-                        is_package=False
-                    )
-                if last_mile + '.srv' in files:
-                    return importlib.machinery.ModuleSpec(
-                        fullname,
-                        None,  # TODO loader
-                        origin=root,
-                        is_package=False
-                    )
-
-            # we couldn't find the module. let someone else find it.
-            return None
 
 
     class ROSImportFinder(importlib.abc.PathEntryFinder):
