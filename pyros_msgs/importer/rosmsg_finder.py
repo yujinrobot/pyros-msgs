@@ -32,27 +32,35 @@ if sys.version_info >= (3, 4):
     import importlib.util
 
 
-    class ROSFileFinder(importlib.machinery.FileFinder):
+    class DirectoryFinder(importlib.machinery.FileFinder):
+        """Finder to interpret directories as modules, and files as classes"""
 
-        def __init__(self, path):
+        def __init__(self, path, *ros_loader_details):
             """
-            Finder to get ROS specific files and directories (message and services files).
-            It need to be inserted in sys.path_hooks before FileFinder, since these are Files but not python ones.
+            Finder to get directories containing ROS message and service files.
+            It need to be inserted in sys.path_hooks before FileFinder, since these are Directories but not containing __init__ as per python hardcoded convention.
+
+            Note: There is a matching issue between msg/ folder and msg/My.msg on one side, and package, module, class concepts on the other.
+            Since a module is not callable, but we need to call My(data) to build a message class (ROS convention), we match the msg/ folder to a module (and not a package)
+            And to keep matching ROS conventions, a directory without __init__ or any message/service file, will become a namespace (sub)package.
 
             :param path_entry: the msg or srv directory path (no finder should have been instantiated yet)
             """
 
-            # Declaring our loaders and the different extensions
-            self.extended_loader_details = [
-                (ROSMsgLoader, ['.msg']),
-                (ROSSrvLoader, ['.srv']),
-            ]
+            ros_loaders = []
+            for loader, suffixes in ros_loader_details:
+                ros_loaders.extend((suffix, loader) for suffix in suffixes)
+            self._ros_loaders = ros_loaders
 
-            # We rely on FileFinder, just with different loaders for different file extensions
-            super(ROSFileFinder, self).__init__(
+            # We rely on FileFinder and python loader to deal with our generated code
+            super(DirectoryFinder, self).__init__(
                 path,
-                *self.extended_loader_details
+                (importlib.machinery.SourceFileLoader, ['.py']),
+                (importlib.machinery.SourcelessFileLoader, ['.pyc']),
             )
+
+        def __repr__(self):
+            return 'DirectoryFinder({!r})'.format(self.path)
 
         def find_spec(self, fullname, target=None):
             """
@@ -64,33 +72,55 @@ if sys.version_info >= (3, 4):
             """
 
             tail_module = fullname.rpartition('.')[2]
-            loader = None
-            spec = None
-            # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
-            base_path = os.path.join(self.path, tail_module)
-            if os.path.isdir(base_path):
-                for suffix, loader_class in self._loaders:
-                    loader = loader_class(fullname, base_path) if [f for f in os.listdir(base_path) if f.endswith(suffix)] else loader
-                # DO we need one or two loaders ? (package logic is same, but msg or srv differs after...)
-                if loader:
-                    spec = importlib.util.spec_from_file_location(fullname, base_path, loader=loader, submodule_search_locations=[base_path])
-            else:
-                if tail_module.startswith('_'):  # consistent with generated module from msg package
-                    base_path = os.path.join(self.path, tail_module[1:])
-                    for suffix, loader_class in self._loaders:
-                        loader = loader_class(fullname, base_path + suffix) if os.path.isfile(base_path + suffix) else loader
-                    if loader:
-                        spec = importlib.util.spec_from_file_location(fullname, loader.path, loader=loader)
-                else:  # probably an attempt to import the class in the generated module (shortcutting python import mechanism)
-                    base_path = os.path.join(self.path, tail_module)
-                    for suffix, loader_class in self._loaders:
-                        loader = loader_class(fullname, base_path + suffix) if os.path.isfile(base_path + suffix) else loader
-                    if loader:
-                        spec = importlib.util.spec_from_file_location(fullname, loader.path, loader=loader)
 
-            # we use default behavior if we couldn't find a spec before
-            spec = spec or super(ROSFileFinder, self).find_spec(fullname=fullname, target=target)
+            spec = None
+
+            # ignoring the generated message module when looking for it. Instead we want to start again from the original .msg/.srv.
+            # if tail_module.startswith('_') and any(os.path.isfile(os.path.join(self.path, tail_module[1:] + sfx) for sfx, _ in self._loaders)):  # consistent with generated module from msg package
+            #     tail_module = tail_module[1:]
+            base_path = os.path.join(self.path, tail_module)
+
+            # special code here since FileFinder expect a "__init__" that we don't need for msg or srv.
+            if os.path.isdir(base_path):
+                loader_class = None
+                rosdir = None
+                # Figuring out if we should care about this directory at all
+                for root, dirs, files in os.walk(base_path):
+                    for suffix, loader_cls in self._ros_loaders:
+                        if any(f.endswith(suffix) for f in files):
+                            loader_class = loader_cls
+                            rosdir = root
+                if loader_class and rosdir and rosdir == base_path:  # we found a message/service file in the hierarchy, that belong to our module
+                    loader = loader_class(fullname, base_path)
+                    # we are looking for submodules either in generated location (to be able to load generated python files) or in original msg location
+                    spec = importlib.util.spec_from_file_location(fullname, base_path, loader=loader, submodule_search_locations=[base_path, loader.get_gen_path()])
+                    # We DO NOT WANT TO add the generated dir in sys.path to use a python loader
+                    # since the plan is to eventually not have to rely on files at all TODO
+
+            # Relying on FileFinder if we couldn't find any specific directory structure/content
+            # It will return a namespace spec if no file can be found
+            # or will return a proper loader for already generated python files
+            spec = spec or super(DirectoryFinder, self).find_spec(fullname, target=target)
+            # we return None if we couldn't find a spec before
             return spec
+
+    MSG_SUFFIXES = ['.msg']
+    SRV_SUFFIXES = ['.srv']
+
+    def _get_supported_ros_loaders():
+        """Returns a list of file-based module loaders.
+        Each item is a tuple (loader, suffixes).
+        """
+        msg = ROSMsgLoader, MSG_SUFFIXES
+        srv = ROSSrvLoader, SRV_SUFFIXES
+        return [msg, srv]
+
+
+    def _install():
+        """Install the path-based import components."""
+        supported_loaders = _get_supported_ros_loaders()
+        sys.path_hooks.extend([DirectoryFinder.path_hook(*supported_loaders)])
+        # TODO : sys.meta_path.append(DistroFinder)
 
 
     class ROSImportFinder(importlib.abc.PathEntryFinder):

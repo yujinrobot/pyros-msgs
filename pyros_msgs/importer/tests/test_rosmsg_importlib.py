@@ -150,7 +150,7 @@ def print_importers():
         print('%s: %r' % (name, cache_value))
 
 
-class TestImportAnotherMsg(unittest.TestCase):
+class TestImportLibAnotherMsg(unittest.TestCase):
 
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps')
 
@@ -158,7 +158,8 @@ class TestImportAnotherMsg(unittest.TestCase):
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our (non .py[c]) files
         # inside, maybe already imported, python packages...
-        sys.path_hooks.insert(1, rosmsg_finder.ROSImportFinder)
+        sys.path_hooks.insert(1, rosmsg_finder.ROSFileFinder)
+        #sys.path_hooks.append(rosmsg_finder.ROSFileFinder)
         sys.path.append(cls.rosdeps_path)
 
     @classmethod
@@ -167,45 +168,10 @@ class TestImportAnotherMsg(unittest.TestCase):
         # initialized finders will remain in sys.path_importer_cache
         sys.path.remove(cls.rosdeps_path)
 
-    def test_import_absolute(self):
-        print_importers()
-        # Verify that files exists and are importable
-        import std_msgs.msg.Bool as msg_bool
-
-        self.assertTrue(msg_bool is not None)
-
-    def test_import_from(self):
-
-        print_importers()
-        # Verify that files exists and are importable
-        try:
-            # Using std_msgs directly if ROS has been setup (while using from ROS pkg)
-            from std_msgs.msg import Bool as msg_bool
-        except ImportError:
-            # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
-            import site
-            site.addsitedir(os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'ros-site'
-            ))
-            from std_msgs.msg import Bool as msg_bool
-
-        self.assertTrue(msg_bool is not None)
-
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    def test_importlib_import_absolute(self):
+    def test_importlib_import_absolute_pkg(self):
         # Verify that files exists and are importable
-        try:
-            # Using std_msgs directly if ROS has been setup (while using from ROS pkg)
-            msg_bool = importlib.__import__('std_msgs.msg.Bool', )
-        except ImportError:
-            # Otherwise we refer to our submodules here (setup.py usecase, or running from tox without site-packages)
-            import site
-            site.addsitedir(os.path.join(
-                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                'ros-site'
-            ))
-            msg_bool = importlib.__import__('std_msgs.msg.Bool',)
+        importlib.__import__('std_msgs.msg.Bool')
 
         assert msg_bool is not None
 

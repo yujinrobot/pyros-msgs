@@ -169,13 +169,10 @@ class TestImportRelativeMsgPkg(unittest.TestCase):
     def test_import_absolute_pkg(self):
         print_importers()
         # Verify that files exists and are importable
-        # Note : this requires a metapath finder
         import pyros_msgs.importer.tests.msg as msg_pkg
         self.assertTrue(msg_pkg is not None)
-
-        msg_mod = msg_pkg.TestMsg
-        self.assertTrue(msg_mod is not None)
-        self.assertTrue(msg_mod._type == 'pyros_msgs/TestMsg')
+        self.assertTrue(msg_pkg.TestMsg is not None)
+        self.assertTrue(msg_pkg.TestMsg._type == 'pyros_msgs/TestMsg')
 
     @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
     def test_importlib_import_absolute(self):
@@ -183,10 +180,8 @@ class TestImportRelativeMsgPkg(unittest.TestCase):
         importlib.__import__('pyros_msgs.importer.tests.msg',)
         msg_pkg = sys.modules['pyros_msgs.importer.tests.msg']
         self.assertTrue(msg_pkg is not None)
-        
-        msg_mod = msg_pkg.TestMsg
-        self.assertTrue(msg_mod is not None)
-        self.assertTrue(msg_mod._type == 'pyros_msgs/TestMsg')
+        self.assertTrue(msg_pkg.TestMsg is not None)
+        self.assertTrue(msg_pkg.TestMsg._type == 'pyros_msgs/TestMsg')
 
     @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'), reason="importlib does not have attribute find_loader or load_module")
     def test_importlib_loadmodule_absolute(self):
