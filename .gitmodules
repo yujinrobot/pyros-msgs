@@ -10,3 +10,6 @@
 [submodule "pydeps/pytest-boxed"]
 	path = pydeps/pytest-boxed
 	url = https://github.com/pytest-dev/pytest-boxed
+[submodule "rosdeps/ros_comm_msgs"]
+	path = rosdeps/ros_comm_msgs
+	url = https://github.com/ros/ros_comm_msgs.git

@@ -135,54 +135,84 @@ if sys.version_info >= (3, 4):
             super(ROSMsgLoader, self).exec_module(module=module)
 
 
-    class ROSSrvLoader(importlib.abc.SourceLoader):
+    class ROSSrvLoader(importlib.machinery.SourceFileLoader):
 
-        def __init__(self, path_entry, msgsrv_files, package, outdir_pkg, includepath=None, ns_pkg=None):
+        def __init__(self, fullname, path):
 
             self.logger = logging.getLogger(__name__)
-            self.path_entry = path_entry
 
-            self.msgsrv_files = msgsrv_files
-            self.package = package
-            self.outdir_pkg = outdir_pkg
+            # Doing this in each loader, in case we are running from different processes,
+            # avoiding to reload from same file (especially useful for boxed tests).
+            # But deterministic path to avoid regenerating from the same interpreter
+            self.rosimport_path = os.path.join(tempfile.gettempdir(), 'rosimport', str(os.getpid()))
+            if os.path.exists(self.rosimport_path):
+                shutil.rmtree(self.rosimport_path)
+            os.makedirs(self.rosimport_path)
 
-            # TODO : we need to determine that from the loader
-            self.includepath = includepath
-            self.ns_pkg = ns_pkg
+            self.rospackage = fullname.partition('.')[0]
+            # We should reproduce package structure in generated file structure
+            dirlist = path.split(os.sep)
+            pkgidx = dirlist[::-1].index(self.rospackage)
+            indirlist = [p for p in dirlist[:len(dirlist)-pkgidx-1:-1] if p != 'srv' and not p.endswith('.srv')]
+            self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage, *indirlist[::-1])
 
-        def _generate(self, fullname):
+            # : hack to be able to import a generated class (if requested)
+            # self.requested_class = None
 
-            gen = rosmsg_generator.genmsgsrv_py(
-                msgsrv_files=self.msgsrv_files,
-                package=self.package,
-                outdir_pkg=self.outdir_pkg,
-                includepath=self.includepath,
-                ns_pkg=self.ns_pkg
-            )
-            return gen
+            if os.path.isdir(path):
+                if path.endswith('srv') and any([f.endswith('.srv') for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
+                    init_path = os.path.join(self.outdir_pkg, 'srv', '__init__.py')
+                    if not os.path.exists(init_path):
+                        # TODO : we need to determine that from the loader
+                        # as a minimum we need to add current package
+                        self.includepath = [self.rospackage + ':'+ path]
 
-        def get_source(self, fullname):
-            self.logger.debug('loading source for "%s" from msg' % fullname)
-            try:
+                        # TODO : dynamic in memory generation (we do not need the file ultimately...)
+                        self.gen_srvs = rosmsg_generator.gensrv_py(
+                            srv_files=[os.path.join(path, f) for f in os.listdir(path)],  # every file not ending in '.msg' will be ignored
+                            package=self.rospackage,
+                            outdir_pkg=self.outdir_pkg,
+                            includepath=self.includepath,
+                            initpy=True  # we always create an __init__.py when called from here.
+                        )
+                        init_path = None
+                        for pyf in self.gen_srvs:
+                            if pyf.endswith('__init__.py'):
+                                init_path = pyf
 
-                self._generate()
+                    if not init_path:
+                        raise ImportError("__init__.py file not found".format(init_path))
+                    if not os.path.exists(init_path):
+                        raise ImportError("{0} file not found".format(init_path))
 
-                # with shelve_context(self.path_entry) as db:
-                #     key_name = _get_key_name(fullname, db)
-                #     if key_name:
-                #         return db[key_name]
-                #     raise ImportError('could not find source for %s' % fullname)
+                    # relying on usual source file loader since we have generated normal python code
+                    super(ROSSrvLoader, self).__init__(fullname, init_path)
+                else:  # it is a directory potentially containing an 'msg'
+                    # If we are here, it means it wasn't loaded before
+                    # We need to be able to load from source
+                    super(ROSSrvLoader, self).__init__(fullname, path)
 
-                pass
+                    # or to load from installed ros package (python already generated, no point to generate again)
+                    # Note : the path being in sys.path or not is a matter of ROS setup or metafinder.
+                    # TODO
 
+            elif os.path.isfile(path):
+                # The file should have already been generated (by the loader for a msg package)
+                # Note we do not want to rely on namespace packages here, since they are not standardized for python2,
+                # and they can prevent some useful usecases.
 
-            except Exception as e:
-                self.logger.debug('could not load source:', e)
-                raise ImportError(str(e))
+                # Hack to be able to "import generated classes"
+                modname = fullname.rpartition('.')[2]
+                filepath = os.path.join(self.outdir_pkg, 'srv', '_' + modname + '.py')  # the generated module
+                # relying on usual source file loader since we have previously generated normal python code
+                super(ROSSrvLoader, self).__init__(fullname, filepath)
 
-        # defining this to benefit from backward compat import mechanism in python 3.X
-        def get_filename(self, name):
-            os.sep.join(name.split(".")) + '.' + self.ext
+        def get_gen_path(self):
+            """Returning the generated path matching the import"""
+            return os.path.join(self.outdir_pkg, 'srv')
+
+        def exec_module(self, module):
+            super(ROSSrvLoader, self).exec_module(module=module)
 
 
 

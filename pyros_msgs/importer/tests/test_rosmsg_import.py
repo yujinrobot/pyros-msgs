@@ -159,15 +159,137 @@ class TestImportMsg(unittest.TestCase):
         self.assertTrue(std_msgs == std_msgs2)
 
 
+class TestImportSrv(unittest.TestCase):
 
+    rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps', 'ros_comm_msgs')
 
+    @classmethod
+    def setUpClass(cls):
+        # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
+        supported_loaders = rosmsg_finder._get_supported_ros_loaders()
+        ros_hook = rosmsg_finder.DirectoryFinder.path_hook(*supported_loaders)
+        sys.path_hooks.insert(1, ros_hook)
 
-def test_importlib_srv_module():
-    pass
-    # TODO
-    # # Verify that files exists and are importable
-    # msg_mod = importlib.import_module('test_gen_msgs.srv.TestSrv')
+        sys.path.append(cls.rosdeps_path)
 
+    @classmethod
+    def tearDownClass(cls):
+        # CAREFUL : Even though we remove the path from sys.path,
+        # initialized finders will remain in sys.path_importer_cache
+        sys.path.remove(cls.rosdeps_path)
+
+    def test_import_absolute_srv(self):
+        print_importers()
+
+        # Verify that files exists and are importable
+        import std_srvs.srv as std_srvs
+
+        self.assertTrue(std_srvs is not None)
+        self.assertTrue(std_srvs.SetBool is not None)
+        self.assertTrue(callable(std_srvs.SetBool))
+        self.assertTrue(std_srvs.SetBool._type == 'std_srvs/SetBool')
+
+        self.assertTrue(std_srvs is not None)
+        self.assertTrue(std_srvs.SetBoolRequest is not None)
+        self.assertTrue(callable(std_srvs.SetBoolRequest))
+        self.assertTrue(std_srvs.SetBoolRequest._type == 'std_srvs/SetBoolRequest')
+
+        self.assertTrue(std_srvs is not None)
+        self.assertTrue(std_srvs.SetBoolResponse is not None)
+        self.assertTrue(callable(std_srvs.SetBoolResponse))
+        self.assertTrue(std_srvs.SetBoolResponse._type == 'std_srvs/SetBoolResponse')
+
+        # use it !
+        self.assertTrue(std_srvs.SetBoolRequest(data=True).data)
+        self.assertTrue(std_srvs.SetBoolResponse(success=True, message='Test').success)
+
+    def test_import_class_from_absolute_srv(self):
+        """Verify that"""
+        print_importers()
+
+        # Verify that files exists and are importable
+        from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
+
+        self.assertTrue(SetBool is not None)
+        self.assertTrue(callable(SetBool))
+        self.assertTrue(SetBool._type == 'std_srvs/SetBool')
+
+        self.assertTrue(SetBoolRequest is not None)
+        self.assertTrue(callable(SetBoolRequest))
+        self.assertTrue(SetBoolRequest._type == 'std_srvs/SetBoolRequest')
+
+        self.assertTrue(SetBoolResponse is not None)
+        self.assertTrue(callable(SetBoolResponse))
+        self.assertTrue(SetBoolResponse._type == 'std_srvs/SetBoolResponse')
+
+        # use it !
+        self.assertTrue(SetBoolRequest(data=True).data)
+        self.assertTrue(SetBoolResponse(success=True, message='Test').success)
+
+    def test_import_relative_srv(self):
+        """Verify that package is importable relatively"""
+        print_importers()
+
+        from . import srv as test_srvs
+
+        self.assertTrue(test_srvs is not None)
+
+        self.assertTrue(test_srvs.TestSrv is not None)
+        self.assertTrue(callable(test_srvs.TestSrv))
+        self.assertTrue(test_srvs.TestSrv._type == 'pyros_msgs/TestSrv')  # careful between ros package name and python package name
+
+        self.assertTrue(test_srvs.TestSrvRequest is not None)
+        self.assertTrue(callable(test_srvs.TestSrvRequest))
+        self.assertTrue(test_srvs.TestSrvRequest._type == 'pyros_msgs/TestSrvRequest')  # careful between ros package name and python package name
+
+        self.assertTrue(test_srvs.TestSrvResponse is not None)
+        self.assertTrue(callable(test_srvs.TestSrvResponse))
+        self.assertTrue(test_srvs.TestSrvResponse._type == 'pyros_msgs/TestSrvResponse')  # careful between ros package name and python package name
+
+        # use it !
+        self.assertTrue(test_srvs.TestSrvRequest(test_request='Test').test_request)
+        self.assertTrue(test_srvs.TestSrvResponse(test_response=True).test_response)
+
+    def test_import_class_from_relative_srv(self):
+        """Verify that message class is importable relatively"""
+        print_importers()
+
+        from .srv import TestSrv, TestSrvRequest, TestSrvResponse
+
+        self.assertTrue(TestSrv is not None)
+        self.assertTrue(callable(TestSrv))
+        self.assertTrue(TestSrv._type == 'pyros_msgs/TestSrv')  # careful between ros package name and python package name
+
+        self.assertTrue(TestSrvRequest is not None)
+        self.assertTrue(callable(TestSrvRequest))
+        self.assertTrue(TestSrvRequest._type == 'pyros_msgs/TestSrvRequest')
+
+        self.assertTrue(TestSrvResponse is not None)
+        self.assertTrue(callable(TestSrvResponse))
+        self.assertTrue(TestSrvResponse._type == 'pyros_msgs/TestSrvResponse')
+
+        # use it !
+        self.assertTrue(TestSrvRequest(test_request='Test').test_request)
+        self.assertTrue(TestSrvResponse(test_response=True).test_response)
+
+    def test_import_absolute_class_raises(self):
+        print_importers()
+
+        with self.assertRaises(ImportError):
+            import std_srvs.srv.SetBool
+
+    def test_double_import_uses_cache(self):    #
+        print_importers()
+        # Verify that files exists and are importable
+        import std_srvs.srv as std_srvs
+
+        self.assertTrue(std_srvs.SetBool is not None)
+        self.assertTrue(std_srvs.SetBoolRequest is not None)
+        self.assertTrue(std_srvs.SetBoolResponse is not None)
+
+        import std_srvs.srv as std_srvs2
+
+        self.assertTrue(std_srvs == std_srvs2)
 
 if __name__ == '__main__':
     import pytest
