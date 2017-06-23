@@ -65,7 +65,7 @@ def print_importers():
         print('%s: %r' % (name, cache_value))
 
 
-class TestImportAnotherMsg(unittest.TestCase):
+class TestImportMsg(unittest.TestCase):
 
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps')
 
@@ -84,7 +84,7 @@ class TestImportAnotherMsg(unittest.TestCase):
         # initialized finders will remain in sys.path_importer_cache
         sys.path.remove(cls.rosdeps_path)
 
-    def test_import_absolute_pkg(self):
+    def test_import_absolute_msg(self):
         print_importers()
 
         # Verify that files exists and are importable
@@ -95,7 +95,10 @@ class TestImportAnotherMsg(unittest.TestCase):
         self.assertTrue(callable(std_msgs.Bool))
         self.assertTrue(std_msgs.Bool._type == 'std_msgs/Bool')
 
-    def test_import_class_from_absolute_pkg(self):
+        # use it !
+        self.assertTrue(std_msgs.Bool(True))
+
+    def test_import_class_from_absolute_msg(self):
         """Verify that"""
         print_importers()
 
@@ -106,7 +109,10 @@ class TestImportAnotherMsg(unittest.TestCase):
         self.assertTrue(callable(Bool))
         self.assertTrue(Bool._type == 'std_msgs/Bool')
 
-    def test_import_relative_pkg(self):
+        # use it !
+        self.assertTrue(Bool(True))
+
+    def test_import_relative_msg(self):
         """Verify that package is importable relatively"""
         print_importers()
 
@@ -117,7 +123,10 @@ class TestImportAnotherMsg(unittest.TestCase):
         self.assertTrue(callable(test_msgs.TestMsg))
         self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
 
-    def test_import_class_from_relative_pkg(self):
+        # use it !
+        self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
+
+    def test_import_class_from_relative_msg(self):
         """Verify that message class is importable relatively"""
         print_importers()
 
@@ -127,29 +136,27 @@ class TestImportAnotherMsg(unittest.TestCase):
         self.assertTrue(callable(TestMsg))
         self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')
 
-    def test_import_class_absolute_raises(self):
+        # use it !
+        self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
+
+    def test_import_absolute_class_raises(self):
         print_importers()
 
         with self.assertRaises(ImportError):
             import std_msgs.msg.Bool
 
-    # TODO
-    # def test_double_import_uses_cache(self):
-    #     # cleaning previously imported module
-    #     if 'std_msgs' in sys.modules:
-    #         sys.modules.pop('std_msgs')
-    #
-    #     print_importers()
-    #     # Verify that files exists and are importable
-    #     import std_msgs.msg as std_msgs
-    #
-    #     self.assertTrue(std_msgs.Bool is not None)
-    #     self.assertTrue(callable(std_msgs.Bool))
-    #     self.assertTrue(std_msgs.Bool._type == 'std_msgs/Bool')
-    #
-    #     import std_msgs.msg as std_msgs2
-    #
-    #     self.assertTrue(std_msgs == std_msgs2)
+    def test_double_import_uses_cache(self):    #
+        print_importers()
+        # Verify that files exists and are importable
+        import std_msgs.msg as std_msgs
+
+        self.assertTrue(std_msgs.Bool is not None)
+        self.assertTrue(callable(std_msgs.Bool))
+        self.assertTrue(std_msgs.Bool._type == 'std_msgs/Bool')
+
+        import std_msgs.msg as std_msgs2
+
+        self.assertTrue(std_msgs == std_msgs2)
 
 
 
@@ -162,30 +169,6 @@ def test_importlib_srv_module():
     # msg_mod = importlib.import_module('test_gen_msgs.srv.TestSrv')
 
 
-# imp https://pymotw.com/2/imp/index.html
-# TODO
-
-# def test_imp_msg_module():
-#     # Verify that files exists and are importable
-#     msg_mod = imp.import_module('test_gen_msgs.msg.TestMsg')
-#
-#
-# def test_imp_msg_pkg():
-#     # Verify that files exists and are importable
-#     msg_mod = imp.import_module('test_gen_msgs.msg')
-#
-#
-# def test_imp_srv_module():
-#     # Verify that files exists and are importable
-#     msg_mod = imp.import_module('test_gen_msgs.srv.TestSrv')
-#
-#
-# def test_imp_srv_pkg():
-#     # Verify that files exists and are importable
-#     msg_mod = imp.import_module('test_gen_msgs.srv')
-
-
 if __name__ == '__main__':
-    unittest.main()
-    #import nose
-    #nose.main()
+    import pytest
+    pytest.main(['-s', '-x', __file__, '--boxed'])

@@ -134,19 +134,6 @@ if sys.version_info >= (3, 4):
         def exec_module(self, module):
             super(ROSMsgLoader, self).exec_module(module=module)
 
-            # bypassing the __init__ stage
-            #if self.name in module
-
-
-            if self.name.endswith('.msg'):  # we are talking about the package
-                pass
-
-            # looking for a class in the module to import if it was requested.
-            # if self.requested_class and self.requested_class in vars(module):
-            #     # we replace the module with the actual class (the module is still referenced with '_' at the beginning
-            #     sys.modules[self.name] = getattr(module, self.requested_class)
-
-
 
     class ROSSrvLoader(importlib.abc.SourceLoader):
 

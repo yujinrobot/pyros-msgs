@@ -250,6 +250,7 @@ setuptools.setup(name='pyros_msgs',
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
         'pyyaml>=3.10',  # genpy relies on this...
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
+        'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
         'hypothesis>=3.0.1',  # to target xenial LTS version
         'numpy>=1.8.2',  # from trusty version
     ],
