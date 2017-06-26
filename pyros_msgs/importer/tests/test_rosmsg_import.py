@@ -65,6 +65,63 @@ def print_importers():
         print('%s: %r' % (name, cache_value))
 
 
+# We need to test implicit namespace packages PEP 420 (especially for python 2.7)
+# Since we rely on it for ros import.
+# But we can only teet relative package structure
+class TestImplicitNamespace(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
+        supported_loaders = rosmsg_finder._get_supported_ns_loaders()
+        ns_hook = rosmsg_finder.FileFinder2.path_hook(*supported_loaders)
+        sys.path_hooks.insert(1, ns_hook)
+
+    def test_import_relative_ns_subpkg(self):
+        """Verify that package is importable relatively"""
+        print_importers()
+
+        from .nspkg import subpkg as test_pkg
+
+        self.assertTrue(test_pkg is not None)
+        self.assertTrue(test_pkg.TestClassInSubPkg is not None)
+        self.assertTrue(callable(test_pkg.TestClassInSubPkg))
+
+    def test_import_relative_ns_subpkg_submodule(self):
+        """Verify that package is importable relatively"""
+        print_importers()
+
+        from .nspkg.subpkg import submodule as test_mod
+
+        self.assertTrue(test_mod is not None)
+        self.assertTrue(test_mod.TestClassInSubModule is not None)
+        self.assertTrue(callable(test_mod.TestClassInSubModule))
+
+    def test_import_class_from_relative_ns_subpkg(self):
+        """Verify that message class is importable relatively"""
+        print_importers()
+
+        from .nspkg.subpkg import TestClassInSubPkg
+
+        self.assertTrue(TestClassInSubPkg is not None)
+        self.assertTrue(callable(TestClassInSubPkg))
+
+    def test_import_class_from_relative_ns_subpkg_submodule(self):
+        """Verify that package is importable relatively"""
+        print_importers()
+
+        from .nspkg.subpkg.submodule import TestClassInSubModule
+
+        self.assertTrue(TestClassInSubModule is not None)
+        self.assertTrue(callable(TestClassInSubModule))
+
+    def test_import_relative_nonnspkg_raises(self):
+        """Verify that package is importable relatively"""
+        print_importers()
+
+        with self.assertRaises(ImportError):
+            from .bad_nspkg import bad_subpkg
+
+
 class TestImportMsg(unittest.TestCase):
 
     rosdeps_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps')
