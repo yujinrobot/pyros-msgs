@@ -58,38 +58,48 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
 
     # Frame stripping magic ###############################################
 
-    def _call_with_frames_removed(f, *args, **kwds):
-        """remove_importlib_frames in import.c will always remove sequences
-        of importlib frames that end with a call to this function
-
-        Use it instead of a normal call in places where including the importlib
-        frames introduces unwanted noise into the traceback (e.g. when executing
-        module code)
-        """
-        return f(*args, **kwds)
-
-    def decode_source(source_bytes):
-        """Decode bytes representing source code and return the string.
-
-        Universal newline support is used in the decoding.
-        """
-        import tokenize  # To avoid bootstrap issues.
-        source_bytes_readline = io.BytesIO(source_bytes).readline
-        encoding = tokenize.detect_encoding(source_bytes_readline)
-        newline_decoder = io.IncrementalNewlineDecoder(None, True)
-        return newline_decoder.decode(source_bytes.decode(encoding[0]))
-
+    # def _call_with_frames_removed(f, *args, **kwds):
+    #     """remove_importlib_frames in import.c will always remove sequences
+    #     of importlib frames that end with a call to this function
+    #
+    #     Use it instead of a normal call in places where including the importlib
+    #     frames introduces unwanted noise into the traceback (e.g. when executing
+    #     module code)
+    #     """
+    #     return f(*args, **kwds)
+    #
+    # def decode_source(source_bytes):
+    #     """Decode bytes representing source code and return the string.
+    #
+    #     Universal newline support is used in the decoding.
+    #     """
+    #     import tokenize  # To avoid bootstrap issues.
+    #     source_bytes_readline = io.BytesIO(source_bytes).readline
+    #     encoding = tokenize.detect_encoding(source_bytes_readline)
+    #     newline_decoder = io.IncrementalNewlineDecoder(None, True)
+    #     return newline_decoder.decode(source_bytes.decode(encoding[0]))
 
     # inspired from importlib2
     class FileLoader2(object):
         """Base file loader class which implements the loader protocol methods that
-        require file system usage. Also implements implicit namespace package PEP 420."""
+        require file system usage. Also implements implicit namespace package PEP 420.
+
+        CAREFUL: the finder/loader logic is DIFFERENT than for python3.
+        A namespace package, or a normal package, need to return a directory path.
+        get_filename() will append '__init__.py' if it exists and needs to be called when a module path is needed
+        """
 
         def __init__(self, fullname, path):
             """Cache the module name and the path to the file found by the
-            finder."""
+            finder.
+            :param fullname the name of the module to load
+            :param path to the module or the package.
+            If it is a package (namespace or not) the path must point to a directory.
+            Otherwise the path to the python module is needed
+            """
             self.name = fullname
             self.path = path
+            # Note for namespace package, we let pkg_resources manage the __path__ logic
 
         def __eq__(self, other):
             return (self.__class__ == other.__class__ and
@@ -114,15 +124,18 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
         def load_module(self, name):
             """Load a module from a file.
             """
-            # Implementation inspired from pytest
+            # Implementation inspired from pytest.rewrite and importlib
 
-            # If there is an existing module object named 'fullname' in
+            # If there is an existing module object named 'name' in
             # sys.modules, the loader must use that existing module. (Otherwise,
             # the reload() builtin will not work correctly.)
             if name in sys.modules:
                 return sys.modules[name]
 
-            source = self.get_source(name)
+            code = self.get_code(name)
+            if code is None:
+                raise ImportError('cannot load module {!r} when get_code() '
+                                  'returns None'.format(name))
             # I wish I could just call imp.load_compiled here, but __file__ has to
             # be set properly. In Python 3.2+, this all would be handled correctly
             # by load_compiled.
@@ -135,10 +148,11 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
                     mod.__path__ = [self.path]
                     mod.__package__ = name  # PEP 366
                 else:
-                    mod.__path__ = self.path
                     mod.__package__ = '.'.join(name.split('.')[:-1])  # PEP 366
-
-                exec source in mod.__dict__
+                # if we want to skip compilation - useful for debugging
+                source = self.get_source(name)
+                exec (source, mod.__dict__)
+                #exec(code, mod.__dict__)
 
             except:
                 if name in sys.modules:
@@ -152,6 +166,11 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
                 return os.path.join(self.path, '__init__.py')  # python package
             else:
                 return self.path  # module or namespace package case
+
+        def get_code(self, fullname):
+            source = self.get_source(fullname)
+            print('compiling code for "%s"' % fullname)
+            return compile(source, self.get_filename(fullname), 'exec', dont_inherit=True)
 
         def is_package(self, fullname):
             # TODO : test this (without ROS loader)
@@ -201,11 +220,16 @@ def RosLoader(rosdef_extension):
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
 
-            def __init__(self, fullname, path, implicit_ns_pkg=False):
+            # def get_filename(self, fullname):
+            #     """Return the path to the source file."""
+            #     if os.path.isdir(self.path) and os.path.isfile(os.path.join(self.path, '__init__.py')):
+            #         return os.path.join(self.path, '__init__.py')  # python package
+            #     else:
+            #         return self.path  # module or namespace package case
+
+            def __init__(self, fullname, path):
 
                 self.logger = logging.getLogger(__name__)
-
-                self.implicit_ns_package = implicit_ns_pkg
 
                 # Doing this in each loader, in case we are running from different processes,
                 # avoiding to reload from same file (especially useful for boxed tests).
@@ -231,7 +255,7 @@ def RosLoader(rosdef_extension):
                         if not os.path.exists(init_path):
                             # TODO : we need to determine that from the loader
                             # as a minimum we need to add current package
-                            self.includepath = [self.rospackage + ':' + path]
+                            self.includepath = [self.rospackage + ':' + path]  # TODO :maybe keep a list of all messages we have imported (sys.rosmessages)
 
                             # TODO : unify this after reviewing rosmsg_generator API
                             if loader_file_extension == '.msg':
@@ -272,7 +296,8 @@ def RosLoader(rosdef_extension):
                             raise ImportError("{0} file not found".format(init_path))
 
                         # relying on usual source file loader since we have generated normal python code
-                        super(ROSDefLoader, self).__init__(fullname, init_path)
+                        # BUT we need to pass the directory path (not the init file path like for python3)
+                        super(ROSDefLoader, self).__init__(fullname, os.path.dirname(init_path))
                     else:  # it is a directory potentially containing an 'msg'
                         # If we are here, it means it wasn't loaded before
                         # We need to be able to load from source
@@ -292,88 +317,21 @@ def RosLoader(rosdef_extension):
                     filepath = os.path.join(self.outdir_pkg, loader_generated_subdir, '_' + modname + '.py')  # the generated module
                     # relying on usual source file loader since we have previously generated normal python code
                     super(ROSDefLoader, self).__init__(fullname, filepath)
-
-            def get_gen_path(self):
-                """Returning the generated path matching the import"""
-                return os.path.join(self.outdir_pkg, loader_generated_subdir)
-
-            def is_package(self, fullname):
-                return self.implicit_ns_package or super(ROSDefLoader, self).is_package(fullname=fullname)
-
-            def get_source(self, fullname):
-                """Concrete implementation of InspectLoader.get_source."""
-                path = self.get_filename(fullname)
-                try:
-                    source_bytes = self.get_data(path)
-                except OSError as exc:
-                    e = _ImportError('source not available through get_data()',
-                                     name=fullname)
-                    e.__cause__ = exc
-                    raise e
-                return source_bytes
-                # return decode_source(source_bytes)
-
-            def source_to_code(self, data, path, _optimize=-1):
-                """Return the code object compiled from source.
-
-                The 'data' argument can be any object type that compile() supports.
-                """
-                # XXX Handle _optimize when possible?
-                return _call_with_frames_removed(compile, data, path, 'exec',
-                                                 dont_inherit=True)
-            def get_code(self, fullname):
-                source = self.get_source(fullname)
-                print('compiling code for "%s"' % fullname)
-                return compile(source, self._get_filename(fullname), 'exec', dont_inherit=True)
-
-            def __repr__(self):
-                return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
-
-            def load_module(self, fullname):
-                source = self.get_source(fullname)
-
-                if fullname in sys.modules:
-                    print('reusing existing module from previous import of "%s"' % fullname)
-                    mod = sys.modules[fullname]
-                else:
-                    print('creating a new module object for "%s"' % fullname)
-                    mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
-
-                # Set a few properties required by PEP 302 or PEP 420
-                if self.implicit_ns_package:
-                    mod.__path__ = [self.path]
-                else:
-                    mod.__file__ = self.get_filename(fullname)
-                    mod.__path__ = self.path
-
-                mod.__name__ = fullname
-                mod.__loader__ = self
-                mod.__package__ = '.'.join(fullname.split('.')[:-1])
-
-                if self.is_package(fullname):
-                    print('adding path for package')
-                    # Set __path__ for packages
-                    # so we can find the sub-modules.
-                    mod.__path__ = [self.path]
-                else:
-                    print('imported as regular module')
-
-                # Note : we want to avoid calling imp.load_module,
-                # to eventually be able to implement this without generating temporary file
-                print('execing source...')
-                exec source in mod.__dict__
-                print('done')
-                return mod
+            #
+            # def get_gen_path(self):
+            #     """Returning the generated path matching the import"""
+            #     return os.path.join(self.outdir_pkg, loader_generated_subdir)
+            #
+            # def __repr__(self):
+            #     return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
 
     elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (unsupported but might work ?)
         import importlib.machinery as importlib_machinery
 
         class ROSDefLoader(importlib_machinery.SourceFileLoader):
-            def __init__(self, fullname, path, implicit_ns_pkg=False):
+            def __init__(self, fullname, path):
 
                 self.logger = logging.getLogger(__name__)
-
-                self.implicit_ns_package = implicit_ns_pkg
 
                 # Doing this in each loader, in case we are running from different processes,
                 # avoiding to reload from same file (especially useful for boxed tests).
@@ -468,14 +426,14 @@ def RosLoader(rosdef_extension):
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
 
-            def exec_module(self, module):
-                # Custom implementation to declare an implicit namespace package
-                if (2, 7) <= sys.version_info < (3, 4) and self.implicit_ns_package:
-                    module.__path__ = [self.path]  # mandatory to trick importlib2 to think this is a package
-                    import pkg_resources
-                    pkg_resources.declare_namespace(module.__name__)
-                else:
-                    super(ROSDefLoader, self).exec_module(module)
+            # def exec_module(self, module):
+            #     # Custom implementation to declare an implicit namespace package
+            #     if (2, 7) <= sys.version_info < (3, 4) and self.implicit_ns_package:
+            #         module.__path__ = [self.path]  # mandatory to trick importlib2 to think this is a package
+            #         import pkg_resources
+            #         pkg_resources.declare_namespace(module.__name__)
+            #     else:
+            #         super(ROSDefLoader, self).exec_module(module)
 
     else:
         raise ImportError("ros_loader : Unsupported python version")

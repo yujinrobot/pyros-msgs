@@ -71,10 +71,12 @@ def print_importers():
 class TestImplicitNamespace(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
-        supported_loaders = rosmsg_finder._get_supported_ns_loaders()
-        ns_hook = rosmsg_finder.FileFinder2.path_hook(*supported_loaders)
-        sys.path_hooks.insert(1, ns_hook)
+        # This is required only for old python
+        if sys.version_info < (3, 4):
+            supported_loaders = rosmsg_finder._get_supported_ns_loaders()
+            ns_hook = rosmsg_finder.FileFinder2.path_hook(*supported_loaders)
+            sys.path_hooks.insert(1, ns_hook)
+        # python3 implicit namespaces should work out of the box.
 
     def test_import_relative_ns_subpkg(self):
         """Verify that package is importable relatively"""
@@ -130,7 +132,7 @@ class TestImportMsg(unittest.TestCase):
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
         supported_loaders = rosmsg_finder._get_supported_ros_loaders()
-        ros_hook = rosmsg_finder.DirectoryFinder.path_hook(*supported_loaders)
+        ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
         sys.path_hooks.insert(1, ros_hook)
 
         sys.path.append(cls.rosdeps_path)
@@ -224,7 +226,7 @@ class TestImportSrv(unittest.TestCase):
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
         supported_loaders = rosmsg_finder._get_supported_ros_loaders()
-        ros_hook = rosmsg_finder.DirectoryFinder.path_hook(*supported_loaders)
+        ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
         sys.path_hooks.insert(1, ros_hook)
 
         sys.path.append(cls.rosdeps_path)

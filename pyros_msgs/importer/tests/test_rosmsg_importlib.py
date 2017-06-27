@@ -157,7 +157,7 @@ class TestImportLibAnotherMsg(unittest.TestCase):
     def setUpClass(cls):
         # We need to be before FileFinder to be able to find our '.msg' and '.srv' files without making a namespace package
         supported_loaders = rosmsg_finder._get_supported_ros_loaders()
-        ros_hook = rosmsg_finder.DirectoryFinder.path_hook(*supported_loaders)
+        ros_hook = rosmsg_finder.ROSDirectoryFinder.path_hook(*supported_loaders)
         sys.path_hooks.insert(1, ros_hook)
 
         sys.path.append(cls.rosdeps_path)
