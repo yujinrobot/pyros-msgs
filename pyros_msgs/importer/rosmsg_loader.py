@@ -220,13 +220,6 @@ def RosLoader(rosdef_extension):
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
 
-            # def get_filename(self, fullname):
-            #     """Return the path to the source file."""
-            #     if os.path.isdir(self.path) and os.path.isfile(os.path.join(self.path, '__init__.py')):
-            #         return os.path.join(self.path, '__init__.py')  # python package
-            #     else:
-            #         return self.path  # module or namespace package case
-
             def __init__(self, fullname, path):
 
                 self.logger = logging.getLogger(__name__)
@@ -311,24 +304,17 @@ def RosLoader(rosdef_extension):
                     # The file should have already been generated (by the loader for a msg package)
                     # Note we do not want to rely on namespace packages here, since they are not standardized for python2,
                     # and they can prevent some useful usecases.
-
+                    # TODO : This seems to be not used. confirm and cleanup
                     # Hack to be able to "import generated classes"
                     modname = fullname.rpartition('.')[2]
                     filepath = os.path.join(self.outdir_pkg, loader_generated_subdir, '_' + modname + '.py')  # the generated module
                     # relying on usual source file loader since we have previously generated normal python code
                     super(ROSDefLoader, self).__init__(fullname, filepath)
-            #
-            # def get_gen_path(self):
-            #     """Returning the generated path matching the import"""
-            #     return os.path.join(self.outdir_pkg, loader_generated_subdir)
-            #
-            # def __repr__(self):
-            #     return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
 
     elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (unsupported but might work ?)
-        import importlib.machinery as importlib_machinery
+        import importlib.machinery
 
-        class ROSDefLoader(importlib_machinery.SourceFileLoader):
+        class ROSDefLoader(importlib.machinery.SourceFileLoader):
             def __init__(self, fullname, path):
 
                 self.logger = logging.getLogger(__name__)
@@ -347,9 +333,6 @@ def RosLoader(rosdef_extension):
                 pkgidx = dirlist[::-1].index(self.rospackage)
                 indirlist = [p for p in dirlist[:len(dirlist)-pkgidx-1:-1] if p != loader_origin_subdir and not p.endswith(loader_file_extension)]
                 self.outdir_pkg = os.path.join(self.rosimport_path, self.rospackage, *indirlist[::-1])
-
-                # : hack to be able to import a generated class (if requested)
-                # self.requested_class = None
 
                 if os.path.isdir(path):
                     if path.endswith(loader_origin_subdir) and any([f.endswith(loader_file_extension) for f in os.listdir(path)]):  # if we get a non empty 'msg' folder
@@ -425,15 +408,6 @@ def RosLoader(rosdef_extension):
 
             def __repr__(self):
                 return "ROSDefLoader/{0}({1}, {2})".format(loader_file_extension, self.name, self.path)
-
-            # def exec_module(self, module):
-            #     # Custom implementation to declare an implicit namespace package
-            #     if (2, 7) <= sys.version_info < (3, 4) and self.implicit_ns_package:
-            #         module.__path__ = [self.path]  # mandatory to trick importlib2 to think this is a package
-            #         import pkg_resources
-            #         pkg_resources.declare_namespace(module.__name__)
-            #     else:
-            #         super(ROSDefLoader, self).exec_module(module)
 
     else:
         raise ImportError("ros_loader : Unsupported python version")

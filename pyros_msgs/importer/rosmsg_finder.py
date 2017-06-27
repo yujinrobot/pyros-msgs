@@ -31,72 +31,7 @@ if (2, 7) <= sys.version_info < (3, 4):  # valid until which py3 version ?
     import pkg_resources  # useful to have empty directory imply namespace package (like for py3)
 
     from .rosmsg_loader import _ImportError, _verbose_message, FileLoader2
-
     import imp
-
-    # def spec_from_file_location(name, location=None, loader=None,
-    #                             submodule_search_locations=None):
-    #     """Return a module spec based on a file location.
-    #
-    #     To indicate that the module is a package, set
-    #     submodule_search_locations to a list of directory paths.  An
-    #     empty list is sufficient, though its not otherwise useful to the
-    #     import system.
-    #
-    #     The loader must take a spec as its only __init__() arg.
-    #
-    #     """
-    #
-    #     if location is None:
-    #         # The caller may simply want a partially populated location-
-    #         # oriented spec.  So we set the location to a bogus value and
-    #         # fill in as much as we can.
-    #         location = '<unknown>'
-    #         if hasattr(loader, 'get_filename'):
-    #             # ExecutionLoader
-    #             try:
-    #                 location = loader.get_filename(name)
-    #             except ImportError:
-    #                 pass
-    #
-    #     # If the location is on the filesystem, but doesn't actually exist,
-    #     # we could return None here, indicating that the location is not
-    #     # valid.  However, we don't have a good way of testing since an
-    #     # indirect location (e.g. a zip file or URL) will look like a
-    #     # non-existent file relative to the filesystem.
-    #
-    #     spec = ModuleSpec(name, loader, origin=location)
-    #     spec._set_fileattr = True
-    #
-    #     # Pick a loader if one wasn't provided.
-    #     if loader is None:
-    #         for loader_class, suffixes in _get_supported_file_loaders():
-    #             if location.endswith(tuple(suffixes)):
-    #                 loader = loader_class(name, location)
-    #                 spec.loader = loader
-    #                 break
-    #         else:
-    #             return None
-    #
-    #     # Set submodule_search_paths appropriately.
-    #     if submodule_search_locations is None:
-    #         # Check the loader.
-    #         if hasattr(loader, 'is_package'):
-    #             try:
-    #                 is_package = loader.is_package(name)
-    #             except ImportError:
-    #                 pass
-    #             else:
-    #                 if is_package:
-    #                     spec.submodule_search_locations = []
-    #     else:
-    #         spec.submodule_search_locations = submodule_search_locations
-    #     if spec.submodule_search_locations == []:
-    #         if location:
-    #             dirname = os.path.split(location)[0]
-    #             spec.submodule_search_locations.append(dirname)
-    #
-    #     return spec
 
     class FileFinder2(object):
         def __init__(self, path, *loader_details):
@@ -235,7 +170,7 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
     import importlib.util as importlib_util
 
 
-    class DirectoryFinder(importlib_machinery.FileFinder):
+    class ROSDirectoryFinder(importlib_machinery.FileFinder):
         """Finder to interpret directories as modules, and files as classes"""
 
         def __init__(self, path, *ros_loader_details):
@@ -263,7 +198,7 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
             )
 
         def __repr__(self):
-            return 'DirectoryFinder({!r})'.format(self.path)
+            return 'ROSDirectoryFinder({!r})'.format(self.path)
 
         def find_spec(self, fullname, target=None):
             """
@@ -298,7 +233,7 @@ elif sys.version_info >= (3, 4):  # we do not support 3.2 and 3.3 (maybe we coul
                         # since the plan is to eventually not have to rely on files at all TODO
 
             # Relying on FileFinder if we couldn't find any specific directory structure/content
-            # It will return a namespace spec if no file can be found (even with python2.7, thanks to importlib2)
+            # It will return a namespace spec if no file can be found
             # or will return a proper loader for already generated python files
             spec = spec or super(ROSDirectoryFinder, self).find_spec(fullname, target=target)
             # we return None if we couldn't find a spec before
