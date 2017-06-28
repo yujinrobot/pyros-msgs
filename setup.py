@@ -249,6 +249,7 @@ setuptools.setup(name='pyros_msgs',
         # 'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
         # 'importlib2>=3.4;python_version<"3.4"',  # NOT working we use a patched version of it, through a symlink (to make linux deb release possible)
+        'filefinder2; python_version<"3.4"',  # we rely on this for PEP420 on python 2.7
         'pyyaml>=3.10',  # genpy relies on this...
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)

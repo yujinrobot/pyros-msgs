@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, print_function
 """
-Testing executing rosmsg_generator directly (like setup.py would)
+Testing dynamic import with importlib
 """
 
 import os
@@ -27,7 +27,7 @@ logging.config.dictConfig({
     },
 })
 
-# Since test frameworks (like pytest) play with the import machinery, we cannot use it here...
+# Relying on basic unittest first, to be able to easily switch the test framework in case of import conflicts.
 import unittest
 
 # Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
@@ -41,113 +41,13 @@ from pyros_msgs.importer import rosmsg_finder
 # https://pymotw.com/3/importlib/index.html
 # https://pymotw.com/2/importlib/index.html
 
-# if sys.version_info > (3, 4):
-#     import importlib.util
-#     # REF : https://docs.python.org/3.6/library/importlib.html#approximating-importlib-import-module
-#     # Useful to display details when debugging...
-#     def import_module(name, package=None):
-#         """An approximate implementation of import."""
-#         absolute_name = importlib.util.resolve_name(name, package)
-#         try:
-#             return sys.modules[absolute_name]
-#         except KeyError:
-#             pass
-#
-#         path = None
-#         if '.' in absolute_name:
-#             parent_name, _, child_name = absolute_name.rpartition('.')
-#             parent_module = import_module(parent_name)
-#             path = parent_module.spec.submodule_search_locations  # this currently breaks (probably because of pytest custom importer ? )
-#         for finder in sys.meta_path:
-#             spec = finder.find_spec(absolute_name, path)
-#             if spec is not None:
-#                 break
-#         else:
-#             raise ImportError('No module named {absolute_name!r}'.format(**locals()))
-#         module = importlib.util.module_from_spec(spec)
-#         spec.loader.exec_module(module)
-#         sys.modules[absolute_name] = module
-#         if path is not None:
-#             setattr(parent_module, child_name, module)
-#         return module
-
-
-# if sys.version_info > (3, 4):
-#     import importlib.util
-#
-#     # Adapted from : https://docs.python.org/3.6/library/importlib.html#approximating-importlib-import-module
-#     # Useful to debug details...
-#     def import_module(name, package=None):
-#         # using find_spec to use our finder
-#         spec = importlib.util.find_spec(name, package)
-#
-#         # path = None
-#         # if '.' in absolute_name:
-#         #     parent_name, _, child_name = absolute_name.rpartition('.')
-#         #     # recursive import call
-#         #     parent_module = import_module(parent_name)
-#         #     # getting the path instead of relying on spec (not managed by pytest it seems...)
-#         #     path = [os.path.join(p, child_name) for p in parent_module.__path__ if os.path.exists(os.path.join(p, child_name))]
-#
-#         # getting spec with importlib.util (instead of meta path finder to avoid uncompatible pytest finder)
-#         #spec = importlib.util.spec_from_file_location(absolute_name, path[0])
-#         parent_module = None
-#         child_name = None
-#         if spec is None:
-#             # We didnt find anything, but this is expected on ros packages that haven't been generated yet
-#             if '.' in name:
-#                 parent_name, _, child_name = name.rpartition('.')
-#                 # recursive import call
-#                 parent_module = import_module(parent_name)
-#                 # we can check if there is a module in there..
-#                 path = [os.path.join(p, child_name)
-#                         for p in parent_module.__path__._path
-#                         if os.path.exists(os.path.join(p, child_name))]
-#                 # we attempt to get the spec from the first found location
-#                 while path and spec is None:
-#                     spec = importlib.util.spec_from_file_location(name, path[0])
-#                     path[:] = path[1:]
-#             else:
-#                 raise ImportError
-#
-#         # checking again in case spec has been modified
-#         if spec is not None:
-#             if spec.name not in sys.modules:
-#                 module = importlib.util.module_from_spec(spec)
-#                 spec.loader.exec_module(module)
-#                 sys.modules[name] = module
-#             if parent_module is not None and child_name is not None:
-#                 setattr(parent_module, child_name, sys.modules[name])
-#             return sys.modules[name]
-#         else:
-#             raise ImportError
-# else:
-#     def import_module(name, package=None):
-#         return importlib.import_module(name=name, package=package)
-
-
 #
 # Note : we cannot assume anything about import implementation (different python version, different version of pytest)
 # => we need to test them all...
 #
 
-# HACK to fix spec from pytest
-# @property
-# def spec():
-#     importlib.util.spec_from_file_location(__file__)
 
-
-def print_importers():
-    import sys
-    import pprint
-
-    print('PATH:'),
-    pprint.pprint(sys.path)
-    print()
-    print('IMPORTERS:')
-    for name, cache_value in sys.path_importer_cache.items():
-        name = name.replace(sys.prefix, '...')
-        print('%s: %r' % (name, cache_value))
+from ._utils import print_importers
 
 
 class TestImportLibAnotherMsg(unittest.TestCase):
@@ -187,33 +87,33 @@ class TestImportLibAnotherMsg(unittest.TestCase):
         with self.assertRaises(ImportError):
             importlib.__import__('std_msgs.msg.Bool')
 
-    # BROKEN 3.4
-    # @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    # def test_importlib_import_relative_pkg(self):
-    #     # Verify that files exists and are importable
-    #     test_msgs = importlib.__import__('.msg')
-    #
-    #     self.assertTrue(test_msgs is not None)
-    #     self.assertTrue(test_msgs.TestMsg is not None)
-    #     self.assertTrue(callable(test_msgs.TestMsg))
-    #     self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
-    #
-    #     # use it !
-    #     self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
+    # BROKEN 3.4 ?
+    @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
+    def test_importlib_import_relative_pkg(self):
+        # Verify that files exists and are importable
+        test_msgs = importlib.__import__('msg', globals=globals(), level=1)
 
-    # BROKEN 3.4
-    # @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
-    # def test_importlib_import_relative_mod(self):
-    #     # Verify that files exists and are importable
-    #     msg = importlib.__import__('.msg.TestMsg')
-    #     TestMsg = msg.TestMsg
-    #
-    #     self.assertTrue(TestMsg is not None)
-    #     self.assertTrue(callable(TestMsg))
-    #     self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
-    #
-    #     # use it !
-    #     self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
+        self.assertTrue(test_msgs is not None)
+        self.assertTrue(test_msgs.TestMsg is not None)
+        self.assertTrue(callable(test_msgs.TestMsg))
+        self.assertTrue(test_msgs.TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+
+        # use it !
+        self.assertTrue(test_msgs.TestMsg(test_bool=True, test_string='Test').test_bool)
+
+    # BROKEN 3.4 ?
+    @unittest.skipIf(not hasattr(importlib, '__import__'), reason="importlib does not have attribute __import__")
+    def test_importlib_import_relative_mod(self):
+        # Verify that files exists and are importable
+        msg = importlib.__import__('msg.TestMsg', globals=globals(), level=1)
+        TestMsg = msg.TestMsg
+
+        self.assertTrue(TestMsg is not None)
+        self.assertTrue(callable(TestMsg))
+        self.assertTrue(TestMsg._type == 'pyros_msgs/TestMsg')  # careful between ros package name and python package name
+
+        # use it !
+        self.assertTrue(TestMsg(test_bool=True, test_string='Test').test_bool)
 
     @unittest.skipIf(not hasattr(importlib, 'find_loader') or not hasattr(importlib, 'load_module'),
                      reason="importlib does not have attribute find_loader or load_module")
@@ -356,6 +256,8 @@ class TestImportLibAnotherMsg(unittest.TestCase):
 
     @unittest.skipIf(not hasattr(importlib, 'import_module'), reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_relative_msg(self):
+
+        assert __package__
         # Verify that files exists and are dynamically importable
         test_msgs = importlib.import_module('.msg', package=__package__)
 
@@ -378,6 +280,8 @@ class TestImportLibAnotherMsg(unittest.TestCase):
     @unittest.skipIf(not hasattr(importlib, 'import_module'),
                      reason="importlib does not have attribute import_module")
     def test_importlib_importmodule_relative_class_raises(self):
+
+        assert __package__
         with self.assertRaises(ImportError):
             importlib.import_module('.msg.TestMsg', package=__package__)
 
