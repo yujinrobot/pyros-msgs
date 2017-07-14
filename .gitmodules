@@ -10,3 +10,6 @@
 [submodule "rosdeps/ros_comm_msgs"]
 	path = rosdeps/ros_comm_msgs
 	url = https://github.com/ros/ros_comm_msgs.git
+[submodule "pydeps/rosimport"]
+	path = pydeps/rosimport
+	url = https://github.com/asmodehn/rosimport

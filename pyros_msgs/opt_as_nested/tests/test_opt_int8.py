@@ -1,17 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 # TODO : check all types
-
-import os
-import sys
 import pytest
-
-import site
-
-site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
-
-import rosimport
-rosimport.activate()
 
 from . import msg as test_gen_msgs
 

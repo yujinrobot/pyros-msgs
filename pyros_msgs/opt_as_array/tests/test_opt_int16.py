@@ -1,17 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-import sys
-
-import site
-
-site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
-
-import rosimport
-rosimport.activate()
-
 from . import msg as test_gen_msgs
-
 
 import pyros_msgs.opt_as_array
 # patching (need to know the field name)

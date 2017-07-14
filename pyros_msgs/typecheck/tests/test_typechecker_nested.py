@@ -1,16 +1,5 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import sys
-
-# try:
-#     import pyros_msgs
-#     import genpy
-# except ImportError:
-#     import pyros_setup
-#     pyros_setup.configurable_import().configure().activate()
-#     import pyros_msgs
-#     import genpy
-
 import six
 
 from pyros_msgs.typecheck.typechecker import (
