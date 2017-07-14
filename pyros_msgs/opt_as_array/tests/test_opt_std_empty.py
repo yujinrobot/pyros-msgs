@@ -5,18 +5,15 @@ import sys
 
 
 import pytest
+import site
 
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
 
-# generating all and accessing the required message class.
-from pyros_msgs.opt_as_array.tests import msg_generate
+import rosimport
+rosimport.activate()
 
-try:
-    # This should succeed if the message class was already generated
-    import std_msgs.msg as std_msgs
-except ImportError:  # we should enter here if the message was not generated yet.
-    std_msgs, _ = msg_generate.generate_std_msgs()
-
-test_gen_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
+from . import msg as test_gen_msgs
+import std_msgs.msg as std_msgs
 
 
 import pyros_msgs.opt_as_array

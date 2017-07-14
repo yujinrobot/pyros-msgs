@@ -5,25 +5,19 @@ from __future__ import absolute_import, division, print_function
 import os
 import sys
 import pytest
+import site
 
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
 
-# generating all and accessing the required message class.
-from pyros_msgs.opt_as_nested.tests import msg_generate
+import rosimport
+rosimport.activate()
 
-try:
-    # This should succeed if the message class was already generated
-    import pyros_msgs.msg as pyros_msgs
-except ImportError:  # we should enter here if the message was not generated yet.
-    pyros_msgs = msg_generate.generate_pyros_msgs()
+from . import msg as test_gen_msgs
 
-try:
-    gen_test_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
-except Exception as e:
-    pytest.raises(e)
 
 import pyros_msgs.opt_as_nested
 # patching (need to know the field name)
-pyros_msgs.opt_as_nested.duck_punch(gen_test_msgs.test_opt_string_as_nested, ['data'])
+pyros_msgs.opt_as_nested.duck_punch(test_gen_msgs.test_opt_string_as_nested, ['data'])
 
 import hypothesis
 import hypothesis.strategies
@@ -36,7 +30,7 @@ import hypothesis.strategies
     # hypothesis.strategies.binary()
 ))
 def test_init_rosdata(data):
-    msg = gen_test_msgs.test_opt_string_as_nested(data=data)
+    msg = test_gen_msgs.test_opt_string_as_nested(data=data)
     assert msg.data == data
 
 
@@ -47,7 +41,7 @@ def test_init_rosdata(data):
     # hypothesis.strategies.binary()
 ))
 def test_init_data(data):
-    msg = gen_test_msgs.test_opt_string_as_nested(data=data)
+    msg = test_gen_msgs.test_opt_string_as_nested(data=data)
     assert msg.data == data
 
 
@@ -58,12 +52,12 @@ def test_init_data(data):
     # hypothesis.strategies.binary()
 ))
 def test_init_raw(data):
-    msg = gen_test_msgs.test_opt_string_as_nested(data)
+    msg = test_gen_msgs.test_opt_string_as_nested(data)
     assert msg.data == data
 
 
 def test_init_default():
-    msg = gen_test_msgs.test_opt_string_as_nested()
+    msg = test_gen_msgs.test_opt_string_as_nested()
     assert msg.data == None
 
 
@@ -77,7 +71,7 @@ def test_init_default():
 def test_wrong_init_except(data):
     """Testing we except when types do not match"""
     try:
-        gen_test_msgs.test_opt_string_as_nested(data)
+        test_gen_msgs.test_opt_string_as_nested(data)
     except AttributeError:
         pass
     except UnicodeEncodeError:

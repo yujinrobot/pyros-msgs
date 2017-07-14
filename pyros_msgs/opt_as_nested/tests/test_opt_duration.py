@@ -7,19 +7,15 @@ import sys
 import genpy
 import pytest
 
-# generating all and accessing the required message class.
-from pyros_msgs.opt_as_nested.tests import msg_generate
+import site
 
-try:
-    # This should succeed if the message class was already generated
-    import pyros_msgs.msg as pyros_msgs
-except ImportError:  # we should enter here if the message was not generated yet.
-    pyros_msgs = msg_generate.generate_pyros_msgs()
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
 
-try:
-    test_gen_msgs, gen_test_srvs = msg_generate.generate_test_msgs()
-except Exception as e:
-    pytest.raises(e)
+import rosimport
+rosimport.activate()
+
+from . import msg as test_gen_msgs
+
 
 import pyros_msgs.opt_as_nested
 # patching (need to know the field name)

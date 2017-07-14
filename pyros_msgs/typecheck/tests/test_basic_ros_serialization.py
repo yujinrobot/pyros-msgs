@@ -1,22 +1,20 @@
 from __future__ import absolute_import, division, print_function
 
-import numpy
-import pytest
-from StringIO import StringIO
-
 
 import os
 import sys
+import numpy
+from six import BytesIO
 
+import site
 
-# generating all and accessing the required message class.
-from pyros_msgs.typecheck.tests import msg_generate
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
 
-try:
-    # This should succeed if the message class was already generated
-    import std_msgs.msg as std_msgs
-except ImportError:  # we should enter here if the message was not generated yet.
-    std_msgs, std_srvs = msg_generate.generate_std_msgs()
+import rosimport
+rosimport.activate()
+
+# This should succeed if the message class was already generated
+import std_msgs.msg as std_msgs
 
 import genpy
 
@@ -30,7 +28,7 @@ def test_typechecker_serialize_deserialize_float32_inverse(value):
     """"""
 
     # sending
-    buff = StringIO()
+    buff = BytesIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()
@@ -51,7 +49,7 @@ def test_typechecker_serialize_deserialize_time_inverse(value):
     """"""
 
     # sending
-    buff = StringIO()
+    buff = BytesIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()

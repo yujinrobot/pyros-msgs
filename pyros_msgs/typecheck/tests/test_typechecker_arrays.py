@@ -62,7 +62,7 @@ def test_boolarray_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         boolarray_type_checker(value)
-    assert "is not accepted by Array of Accepter from <type 'bool'>" in excinfo.value.message
+    assert "is not accepted by Array of Accepter " in excinfo.value.message
 
 
 @given(proper_list_strategy_selector(intarray_type_checker))
@@ -87,7 +87,7 @@ def test_intarray_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         intarray_type_checker(value)
-    assert "is not accepted by Array of MinMax [-42..13835058055282163712] of Any of set" in excinfo.value.message
+    assert "is not accepted by Array of MinMax [-42..13835058055282163712] of Any of " in excinfo.value.message
 
 
 @given(proper_list_strategy_selector(floatarray_type_checker))
@@ -112,7 +112,7 @@ def test_floatarray_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         floatarray_type_checker(value)
-    assert "is not accepted by Array of MinMax [-42.0..1.38350580553e+19] of Accepter from <type 'float'>" in excinfo.value.message
+    assert "is not accepted by Array of MinMax " in excinfo.value.message
 
 
 @given(proper_list_strategy_selector(stringarray_type_checker))
@@ -137,4 +137,4 @@ def test_stringarray_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         stringarray_type_checker(value)
-    assert "is not accepted by Array of Any of set" in excinfo.value.message
+    assert "is not accepted by Array of Any of " in excinfo.value.message

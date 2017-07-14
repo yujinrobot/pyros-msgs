@@ -2,11 +2,15 @@ from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+import site
+
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
+
+import rosimport
+rosimport.activate()
 
 
-# generating all and accessing the required message classe.
-from pyros_msgs.opt_as_array.tests import msg_generate
-test_gen_msgs, test_gen_srvs = msg_generate.generate_test_msgs()
+from . import msg as test_gen_msgs
 
 # patching (need to know the field name)
 import pyros_msgs.opt_as_array
@@ -14,8 +18,6 @@ pyros_msgs.opt_as_array.duck_punch(test_gen_msgs.test_opt_bool_as_array, ['data'
 
 import pytest
 
-
-import hypothesis
 import hypothesis.strategies
 
 
@@ -56,7 +58,7 @@ def test_wrong_init_except(data):
     with pytest.raises(AttributeError) as cm:
         test_gen_msgs.test_opt_bool_as_array(data)
     assert isinstance(cm.value, AttributeError)
-    assert "does not match the accepted type schema for 'data' : Any of set" in cm.value.message
+    assert "does not match the accepted type schema for 'data' : Any of" in str(cm.value)
 
 
 # Just in case we run this directly

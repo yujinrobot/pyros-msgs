@@ -55,7 +55,7 @@ def test_breaks_on_bad_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         bool_type_checker(value)
-    assert "is not accepted by Accepter from <type 'bool'>" in excinfo.value.message
+    assert "is not accepted by Accepter " in excinfo.value.message
 
 
 @given(proper_basic_strategy_selector(integer_type_checker))  # where we learn that in python booleans are ints...
@@ -76,7 +76,7 @@ def test_typechecker_with_any_accepter_breaks_on_bad_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         integer_type_checker(value)
-    assert "is not accepted by Any of set" in excinfo.value.message
+    assert "is not accepted by Any of " in excinfo.value.message
 
 
 @given(proper_basic_strategy_selector(integer_type_checker_min_max))
@@ -97,7 +97,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         integer_type_checker_min_max(value)
-    assert "is not accepted by MinMax [-42..13835058055282163712] of Any of set" in excinfo.value.message
+    assert "is not accepted by MinMax [-42..13835058055282163712] of Any of " in excinfo.value.message
 
 
 @given(proper_basic_strategy_selector(float_type_checker))  # where we learn that in python
@@ -120,7 +120,7 @@ def test_typechecker_breaks_on_bad_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         float_type_checker(value)
-    assert "is not accepted by Accepter from <type 'float'>" in excinfo.value.message
+    assert "is not accepted by Accepter " in excinfo.value.message
 
 
 @given(proper_basic_strategy_selector(float_type_checker_min_max))
@@ -141,7 +141,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_nonfloat_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         float_type_checker_min_max(value)
-    assert "is not accepted by MinMax [-42.0..1.38350580553e+19] of Accepter from <type 'float'>" in excinfo.value.message
+    assert "is not accepted by MinMax " in excinfo.value.message
 
 
 # Separate test because of float arithemtics...
@@ -154,7 +154,7 @@ def test_typechecker_with_minmax_accepter_breaks_on_bad_float_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         float_type_checker_min_max(value)
-    assert "is not accepted by MinMax [-42.0..1.38350580553e+19] of Accepter from <type 'float'>" in excinfo.value.message
+    assert "is not accepted by MinMax " in excinfo.value.message
 
 
 @given(proper_basic_strategy_selector(string_type_checker))
@@ -175,7 +175,7 @@ def test_typechecker_breaks_on_bad_number_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         string_type_checker(value)
-    assert "is not accepted by Any of set" in excinfo.value.message
+    assert "is not accepted by Any of " in excinfo.value.message
 
 
 # Separate test for unicode fanciness
@@ -187,4 +187,4 @@ def test_typechecker_breaks_on_bad_text_values(value):
     """
     with pytest.raises(TypeCheckerException) as excinfo:
         string_type_checker(value)
-    assert "is not accepted by Any of set" in excinfo.value.message
+    assert "is not accepted by Any of " in excinfo.value.message

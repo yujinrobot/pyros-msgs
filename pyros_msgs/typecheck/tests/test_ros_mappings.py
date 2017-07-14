@@ -4,17 +4,17 @@ import os
 import sys
 import numpy
 import pytest
-from StringIO import StringIO
+from six import BytesIO
 
+import site
 
-# generating all and accessing the required message class.
-from pyros_msgs.typecheck.tests import msg_generate
+site.addsitedir(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 'rosdeps'))
 
-try:
-    # This should succeed if the message class was already generated
-    import std_msgs.msg as std_msgs
-except ImportError:  # we should enter here if the message was not generated yet.
-    std_msgs, std_srvs = msg_generate.generate_std_msgs()
+import rosimport
+rosimport.activate()
+
+# This should succeed if the message class was already generated
+import std_msgs.msg as std_msgs
 
 import genpy
 
@@ -116,7 +116,7 @@ def test_typechecker_serialize_deserialize_inverse(msg_type_and_ok_value):
     value = tc(msg_type_and_ok_value[1])
 
     # sending
-    buff = StringIO()
+    buff = BytesIO()
     value.serialize(buff)
     serialized = buff.getvalue()
     buff.close()
@@ -143,7 +143,7 @@ def test_typechecker_typechecker_prevent_broken_values(msg_type_and_bad_value):
         value = tc(msg_type_and_bad_value[1])
 
         # sending
-        buff = StringIO()
+        buff = BytesIO()
         value.serialize(buff)
         serialized = buff.getvalue()
         buff.close()
