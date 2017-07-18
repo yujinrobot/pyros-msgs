@@ -196,10 +196,10 @@ setuptools.setup(name='pyros_msgs',
     license='MIT',
     packages=[
         'pyros_msgs',
-        # 'pyros_msgs.msg',  #catkin build should generate it anyway. usual python build can rely on rosimport.
-        'pyros_msgs.typecheck', 'pyros_msgs.typecheck.tests',
-        'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
-        'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
+        # 'pyros_msgs.msg',  #catkin build should generate it anyway. python build can assume client uses rosimport.
+        'pyros_msgs.typecheck',
+        'pyros_msgs.opt_as_array',
+        'pyros_msgs.opt_as_nested',
     ],
     namespace_packages=['pyros_msgs'],
     # this is better than using package data ( since behavior is a bit different from distutils... )
@@ -212,13 +212,14 @@ setuptools.setup(name='pyros_msgs',
         # 'pyros_utils',  # this must be satisfied by the ROS package system...
         # 'importlib2>=3.4;python_version<"3.4"',  # NOT working we use a patched version of it, through a symlink (to make linux deb release possible)
         'filefinder2; python_version<"3.4"',  # we rely on this for PEP420 on python 2.7
-        # TMP : not released yet
-        # 'rosimport',  # we rely on this for generating ROS message if necessary before importing
         'pyyaml>=3.10',  # genpy relies on this...
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
         'hypothesis>=3.0.1',  # to target xenial LTS version
         'numpy>=1.8.2',  # from trusty version
+    ],
+    test_requires=[
+        'rosimport',  # we rely on this for generating ROS message if necessary before importing
     ],
     cmdclass={
         'rosdevelop': RosDevelopCommand,

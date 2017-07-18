@@ -1,8 +1,7 @@
-#pathlib2
 gitchangelog
 twine
+rosimport
 
 # source access to latest filefinder from git ...
--e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
-# currently satisfied by submodule
+#-e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
 #-e git+https://github.com/asmodehn/rosimport.git#egg=rosimport
