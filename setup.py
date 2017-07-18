@@ -196,35 +196,33 @@ setuptools.setup(name='pyros_msgs',
     license='MIT',
     packages=[
         'pyros_msgs',
-        # 'pyros_msgs.msg',  #catkin build should generate it anyway. python build can assume client uses rosimport.
+        'pyros_msgs.msg',  # catkin build should generate it. python build can assume client uses rosimport.
         'pyros_msgs.typecheck',
         'pyros_msgs.opt_as_array',
         'pyros_msgs.opt_as_nested',
     ],
+    package_data={
+        '': ['*.msg', '*.srv']
+    },
     namespace_packages=['pyros_msgs'],
     # this is better than using package data ( since behavior is a bit different from distutils... )
-    include_package_data=True,  # use MANIFEST.in during install.
+    #include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
         'six',
-        # this is needed as install dependency since we embed tests in the package.
-        # 'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
-        # 'pyros_utils',  # this must be satisfied by the ROS package system...
-        # 'importlib2>=3.4;python_version<"3.4"',  # NOT working we use a patched version of it, through a symlink (to make linux deb release possible)
-        'filefinder2; python_version<"3.4"',  # we rely on this for PEP420 on python 2.7
         'pyyaml>=3.10',  # genpy relies on this...
+    ],
+    tests_require=[
+        'rosimport',  # we rely on this for generating ROS message if necessary before importing
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
         'hypothesis>=3.0.1',  # to target xenial LTS version
         'numpy>=1.8.2',  # from trusty version
     ],
-    test_requires=[
-        'rosimport',  # we rely on this for generating ROS message if necessary before importing
-    ],
     cmdclass={
         'rosdevelop': RosDevelopCommand,
         'rospublish': ROSPublishCommand,
     },
-    zip_safe=False,  # TODO testing...
+    zip_safe=False,  # TODO testing... including using rosimport to generate code from message definition...
 )
 
