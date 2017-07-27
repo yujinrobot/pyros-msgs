@@ -11,10 +11,6 @@ from pyros_msgs.typecheck import (
     make_typechecker_field_hidden,
 )
 
-import os
-import sys
-
-
 from .ros_mappings import typechecker_from_rosfield_opttype
 
 

@@ -204,7 +204,6 @@ setuptools.setup(name='pyros_msgs',
     package_data={
         '': ['*.msg', '*.srv']
     },
-    namespace_packages=['pyros_msgs'],
     # this is better than using package data ( since behavior is a bit different from distutils... )
     #include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
@@ -213,6 +212,7 @@ setuptools.setup(name='pyros_msgs',
         'pyyaml>=3.10',  # genpy relies on this...
     ],
     tests_require=[
+        'filefinder2',
         'rosimport',  # we rely on this for generating ROS message if necessary before importing
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
         'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
