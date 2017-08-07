@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
+import sys
 from . import msg as test_gen_msgs
 
 
@@ -20,7 +21,10 @@ import hypothesis.strategies
 ), max_size=1))
 def test_init_rosdata(data):
     msg = test_gen_msgs.test_opt_string_as_array(data=data)
-    assert msg.data == data
+    if sys.version_info > (3, 0):  # encoding/decoding is explicit
+        assert [d.decode(sys.getdefaultencoding()) for d in msg.data] == data
+    else:
+        assert msg.data == data
 
 
 @hypothesis.given(hypothesis.strategies.one_of(
@@ -31,7 +35,10 @@ def test_init_rosdata(data):
 ))
 def test_init_data(data):
     msg = test_gen_msgs.test_opt_string_as_array(data=data)
-    assert msg.data == [data]
+    if sys.version_info > (3, 0):  # encoding/decoding is explicit
+        assert msg.data[0].decode(sys.getdefaultencoding()) == data
+    else:
+        assert msg.data[0] == data
 
 
 @hypothesis.given(hypothesis.strategies.one_of(
@@ -42,7 +49,10 @@ def test_init_data(data):
 ))
 def test_init_raw(data):
     msg = test_gen_msgs.test_opt_string_as_array(data)
-    assert msg.data == [data]
+    if sys.version_info > (3, 0):  # encoding/decoding is explicit
+        assert msg.data[0].decode(sys.getdefaultencoding()) == data
+    else:
+        assert msg.data[0] == data
 
 
 def test_init_default():

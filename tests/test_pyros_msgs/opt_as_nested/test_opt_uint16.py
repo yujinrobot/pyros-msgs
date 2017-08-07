@@ -51,7 +51,7 @@ def test_wrong_init_except(data):
     with pytest.raises(AttributeError) as cm:
         test_gen_msgs.test_opt_uint16_as_nested(data)
     assert isinstance(cm.value, AttributeError)
-    assert "does not match the accepted type schema for 'data' : Any of set" in cm.value.message
+    assert "does not match the accepted type schema for 'data' : Any of " in str(cm.value)
 
 # Just in case we run this directly
 if __name__ == '__main__':

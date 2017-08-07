@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import six
 import sys
 import numpy
 import pytest
 import collections
-from six import BytesIO
+from six import BytesIO, StringIO
 
 import site
 # This is used for message definitions, not for python code
@@ -128,10 +129,10 @@ def test_typechecker_serialize_deserialize_inverse(msg_type_and_ok_value):
 
     if isinstance(value, std_msgs.Float64):  # for floats, this is only true relative to some epsilon...
         numpy.testing.assert_allclose(received.data, value.data)
-    if isinstance(value, std_msgs.Float32):  # for floats, this is only true relative to some epsilon...
+    elif isinstance(value, std_msgs.Float32):  # for floats, this is only true relative to some epsilon...
         numpy.testing.assert_allclose(received.data, value.data, rtol=1e-5)
     else:
-        assert received == value
+        assert received == msg_type_and_ok_value[1]
 
 
 @given(msg_type_and_value(std_msgs_types_strat_broken))
