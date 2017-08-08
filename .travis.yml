@@ -9,6 +9,8 @@ env:
   - ROS_DISTRO=kinetic
   # Not LTS
   - ROS_DISTRO=lunar
+  # to get latest dependencies (not released in a ROS distro yet)
+  - ROS_DISTRO=latest
 
 python:
   # always test python2 (default supported python version for ROS1)
