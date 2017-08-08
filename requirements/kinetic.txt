@@ -11,4 +11,4 @@ numpy>=1.8.2  # from trusty version
 
 # ros dependencies (necessary when running tests from install)
 -e git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
--e git+https://github.com/asmodehn/genpy.git@setuptools-kinetic-py3#egg=ros_genpy
+-e git+https://github.com/asmodehn/genpy.git@setuptools-kinetic#egg=ros_genpy
