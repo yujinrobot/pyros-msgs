@@ -1,5 +1,10 @@
 *.pyc
 build
+dist
 .tox
 .hypothesis
 *.egg-info
+.cache
+.idea
+__pycache__
+

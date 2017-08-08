@@ -39,7 +39,7 @@ A message type is represented by a schema dict {}.
 The keys denote the message fields names, and the values are the types, following the previous rules.
 """
 
-
+import sys
 import six
 # to get long for py2 and int for py3
 six_long = six.integer_types[-1]
@@ -83,7 +83,26 @@ class Sanitizer(object):
             #TODO : is it the same with slots ?
         elif args:  # basic type (or mapping type but we pass a full value)
             # we sanitize by running the type initializer with the value
-            return self.t(*(a for a in args if a is not None))  # careful we do not want to pass None to a basic type
+            if self.t == six.binary_type:
+                # we need to encode
+                initializer = args[0]
+                # Ref : https://www.python.org/dev/peps/pep-0358/
+                if isinstance(initializer, six.text_type) and sys.version_info > (3, 0):
+                    encoding = args[1] if len(args) > 1 else sys.getdefaultencoding()
+                    return self.t(initializer, encoding)
+                elif initializer is not None:
+                    return self.t(initializer)
+                else:
+                    return self.t()
+            elif self.t == six.text_type:
+                # we need to decode
+                obj = args[0]
+                if isinstance(args[0], six.binary_type):
+                    obj.decode(sys.getdefaultencoding())
+                return self.t(obj)
+            else:
+                return self.t(
+                    *(a for a in args if a is not None))  # careful we do not want to pass None to a basic type
         else:
             TypeCheckerException("Calling {self} with {args} and {kwargs}. not supported".format(**locals()))
 
@@ -191,21 +210,24 @@ class TypeCheckerException(Exception):
     def __init__(self, message):
 
         if isinstance(message, six.text_type):
-            super(TypeCheckerException, self).__init__(message.encode('utf-8'))
+            super(TypeCheckerException, self).__init__(message.encode('utf-8', 'replace'))
             self.message = message
 
         elif isinstance(message, six.binary_type):
             super(TypeCheckerException, self).__init__(message)
-            self.message = message.decode('utf-8')
+            self.message = message.decode('utf-8', 'replace')
 
         else:      # This shouldn't happen...
             raise TypeError("message in an exception has to be a string (optionally unicode)")
 
     def __str__(self):  # when we need a binary string
-        return self.message.encode('ascii', 'ignore')
+        return self.message.encode('ascii', 'replace')
 
     def __unicode__(self):  # when we need a text string
         return self.message
+
+    def __repr__(self):
+        return "TypeCheckerException(" + self.message + ")"
 
 
 class TypeChecker(object):

@@ -12,11 +12,6 @@ import runpy
 version = runpy.run_path('pyros_msgs/typecheck/_version.py')
 __version__ = version.get('__version__')
 
-# Including generator module directly from code to be able to generate our message classes
-# Ref : http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-import imp
-rosmsg_generator = imp.load_source('rosmsg_generator', 'pyros_msgs/importer/rosmsg_generator.py')
-
 
 # Best Flow :
 # Clean previous build & dist
@@ -29,40 +24,6 @@ rosmsg_generator = imp.load_source('rosmsg_generator', 'pyros_msgs/importer/rosm
 
 # TODO : command to retrieve extra ROS stuff from a third party release repo ( for ROS devs ). useful in dev only so maybe "rosdevelop" ? or via catkin_pip ?
 # TODO : command to release to Pip and ROS (bloom) same version one after the other...
-
-
-# Clean way to add a custom "python setup.py <command>"
-# Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
-class GenerateMsgCommand(setuptools.Command):
-    """Command to generate message class"""
-    description = "generate messages for pyros_msgs"
-    user_options = []
-
-    def initialize_options(self):
-        """init options"""
-        # TODO : pass distro path [indigo|jade|etc.]
-        pass
-
-    def finalize_options(self):
-        """finalize options"""
-        pass
-
-    def run(self):
-        """runner"""
-
-        # generating message class
-        generated = rosmsg_generator.generate_msgsrv_nspkg(
-            [os.path.join(os.path.dirname(__file__), 'msg', 'OptionalFields.msg')],
-            package='pyros_msgs',
-            ns_pkg=False,  # no need to generate ns_pkg here, we can use the one we already have
-        )
-
-        # Note we have a tricky problem here since the ros distro for our target needs to be installed on the machine packaging this...
-        # But pip packages are supposed to work on any platform, so we might need another way...
-
-        print("Check that the messages classes have been generated properly...")
-        sys.exit()
-
 
 # Clean way to add a custom "python setup.py <command>"
 # Ref setup.py command extension : https://blog.niteoweb.com/setuptools-run-custom-code-in-setup-py/
@@ -235,29 +196,33 @@ setuptools.setup(name='pyros_msgs',
     license='MIT',
     packages=[
         'pyros_msgs',
-        # 'pyros_msgs.msg',  #TODO : generate this for pure python package, in a way that is compatible with catkin (so we can still use catkin_make with this)
-        'pyros_msgs.typecheck', 'pyros_msgs.typecheck.tests',
-        'pyros_msgs.opt_as_array', 'pyros_msgs.opt_as_array.tests',
-        'pyros_msgs.opt_as_nested', 'pyros_msgs.opt_as_nested.tests',
+        'pyros_msgs.msg',  # catkin build should generate it. python build can assume client uses rosimport.
+        'pyros_msgs.typecheck',
+        'pyros_msgs.opt_as_array',
+        'pyros_msgs.opt_as_nested',
     ],
-    namespace_packages=['pyros_msgs'],
+    package_data={
+        '': ['*.msg', '*.srv']
+    },
     # this is better than using package data ( since behavior is a bit different from distutils... )
-    include_package_data=True,  # use MANIFEST.in during install.
+    #include_package_data=True,  # use MANIFEST.in during install.
     # Reference for optional dependencies : http://stackoverflow.com/questions/4796936/does-pip-handle-extras-requires-from-setuptools-distribute-based-sources
     install_requires=[
-        # this is needed as install dependency since we embed tests in the package.
-        # 'pyros_setup>=0.2.1',  # needed to grab ros environment even if distro setup.sh not sourced
-        # 'pyros_utils',  # this must be satisfied by the ROS package system...
+        'six',
         'pyyaml>=3.10',  # genpy relies on this...
+    ],
+    tests_require=[
+        'filefinder2',
+        'rosimport',  # we rely on this for generating ROS message if necessary before importing
         'pytest>=2.8.0',  # as per hypothesis requirement (careful with 2.5.1 on trusty)
+        'pytest-xdist',  # for --boxed (careful with the version it will be moved out of xdist)
         'hypothesis>=3.0.1',  # to target xenial LTS version
         'numpy>=1.8.2',  # from trusty version
     ],
     cmdclass={
-        'generatemsg': GenerateMsgCommand,
         'rosdevelop': RosDevelopCommand,
         'rospublish': ROSPublishCommand,
     },
-    zip_safe=False,  # TODO testing...
+    zip_safe=False,  # TODO testing... including using rosimport to generate code from message definition...
 )
 
