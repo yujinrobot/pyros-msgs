@@ -4,13 +4,28 @@ branches:
   except:
     - gh-pages
 
+env:
+  - ROS_DISTRO=indigo
+  - ROS_DISTRO=kinetic
+  # Not LTS
+  - ROS_DISTRO=lunar
+
 python:
+  # always test python2 (default supported python version for ROS1)
   - 2.7
-  - 3.4
-  - 3.5
+  # always test latest python3 (to guarantee recent python support)
   - 3.6
   #- pypy
   #- pypy3
+
+# Add specific python3 versions
+matrix:
+  include:
+    # explicitely matching python version to the version on the ubuntu distro supported by the ROS LTS distro
+    - python: 3.4
+      env: ROS_DISTRO=indigo
+    - python: 3.5
+      env: ROS_DISTRO=kinetic
 
 before_install:
 
