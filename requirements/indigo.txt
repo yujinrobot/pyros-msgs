@@ -1,0 +1,14 @@
+gitchangelog
+twine
+pytest>=2.8.0  # as per hypothesis requirement (careful with 2.5.1 on trusty)
+pytest-xdist  # for --boxed (careful with the version it will be moved out of xdist)
+hypothesis>=3.0.1  # to target xenial LTS version
+numpy>=1.8.2  # from trusty version
+
+# source access to latest filefinder and rosimport from git ...
+-e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
+-e git+https://github.com/asmodehn/rosimport.git#egg=rosimport
+
+# ros dependencies (necessary when running tests from install)
+-e git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
+-e git+https://github.com/asmodehn/genpy.git@setuptools#egg=ros_genpy
