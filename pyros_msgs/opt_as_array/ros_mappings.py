@@ -24,20 +24,20 @@ def typechecker_from_rosfield_opttype(slot_type):
     :return: the corresponding typeschema
     Reference :
     >>> typechecker_from_rosfield_type('bool')
-    (<type 'bool'>, <type 'bool'>)
+    (Sanitizer to <class 'bool'>, Accepter from <class 'bool'>)
     >>> typechecker_from_rosfield_type('bool[]')
-    ([<type 'bool'>], (<type 'bool'>, [<type 'bool'>]))
+    (Array of Sanitizer to <class 'bool'>, Array of Accepter from <class 'bool'>)
 
     >>> typechecker_from_rosfield_type('int64[]')
-    ([<type 'long'>], (<type 'int'>, <type 'long'>, [(<type 'int'>, <type 'long'>)]))
+    (Array of Sanitizer to <class 'int'>, Array of MinMax [-9223372036854775808..9223372036854775807] of Any of {<class 'int'>, <class 'int'>})
 
     >>> typechecker_from_rosfield_type('string[]')
-    ([<type 'str'>], (<type 'str'>, <type 'unicode'>, [(<type 'str'>, <type 'unicode'>)]))
+    (Array of Sanitizer to <class 'bytes'>, Array of Any of {CodePoint [0..127] of Accepter from <class 'str'>, Accepter from <class 'bytes'>})
 
     >>> typechecker_from_rosfield_type('time')  #doctest: +ELLIPSIS
-    (<function <lambda> at 0x...>, {'secs': <type 'int'>, 'nsecs': <type 'int'>})
+    (Sanitizer to <function <lambda> at 0x...>, Accepter from {'secs': (Sanitizer to <class 'int'>, MinMax [0..4294967295] of Accepter from <class 'int'>), 'nsecs': (Sanitizer to <class 'int'>, MinMax [0..4294967295] of Accepter from <class 'int'>)})
     >>> typechecker_from_rosfield_type('duration[]')  #doctest: +ELLIPSIS
-    ([<function <lambda> at 0x...>], ({'secs': <type 'int'>, 'nsecs': <type 'int'>}, [{'secs': <type 'int'>, 'nsecs': <type 'int'>}]))
+    (Array of Sanitizer to <function <lambda> at 0x...>, Array of Accepter from {'secs': (Sanitizer to <class 'int'>, MinMax [-2147483648..2147483647] of Accepter from <class 'int'>), 'nsecs': (Sanitizer to <class 'int'>, MinMax [-2147483648..2147483647] of Accepter from <class 'int'>)})
     """
     # we cannot avoid having this here since we can add '[]' to a custom message type
     if isinstance(slot_type, six.string_types) and slot_type.endswith('[]'):
@@ -59,3 +59,9 @@ def typechecker_from_rosfield_opttype(slot_type):
 # TODO : common message types :
 # - std_msgs/Header
 # -
+
+
+if __name__ == '__main__':  # run doctests
+    import doctest
+    from pyros_msgs.typecheck._utils import Py32DoctestChecker
+    doctest.DocTestSuite(__name__, checker=Py32DoctestChecker())

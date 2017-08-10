@@ -32,12 +32,12 @@ def typechecker_from_rosfield_opttype(slot_type):
     :return: the corresponding typeschema
     Reference :
     >>> typechecker_from_rosfield_type('bool')
-    (<type 'bool'>, <type 'bool'>)
+    (Sanitizer <type 'bool'>, Accepter from <type 'bool'>)
     >>> typechecker_from_rosfield_type('bool[]')
-    ([<type 'bool'>], (<type 'bool'>, [<type 'bool'>]))
+    (Array of Sanitizer to <type 'bool'>, Array of Accepter from <type 'bool'>)
 
-    >>> typechecker_from_rosfield_type('int64[]')
-    ([<type 'long'>], (<type 'int'>, <type 'long'>, [(<type 'int'>, <type 'long'>)]))
+    >>> typechecker_from_rosfield_type('int64[]')  #doctest: +ELLIPSIS
+    (Array of Sanitizer to <type 'long'>, Array of MinMax [...] of Any of ( Accepter from <type 'int'>, Accepter from <type 'long'> )
 
     >>> typechecker_from_rosfield_type('string[]')
     ([<type 'str'>], (<type 'str'>, <type 'unicode'>, [(<type 'str'>, <type 'unicode'>)]))
@@ -53,3 +53,8 @@ def typechecker_from_rosfield_opttype(slot_type):
     # return typechecker_from_rosfield_type(slot_type, ignored_fields=['optional_field_initialized_', 'optional_field_names_'])
     # TODO : test it !
 
+
+if __name__ == '__main__':  # run doctests
+    import doctest
+    from pyros_msgs.typecheck._utils import Py32DoctestChecker
+    doctest.DocTestSuite(__name__, checker=Py32DoctestChecker())

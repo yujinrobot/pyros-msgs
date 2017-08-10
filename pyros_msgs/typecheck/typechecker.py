@@ -80,7 +80,7 @@ class Sanitizer(object):
                 subk: subt.sanitizer(kwargs.get(subk))
                 for subk, subt in vars(self.t).items()
             })
-            #TODO : is it the same with slots ?
+            # TODO : is it the same with slots ?
         elif args:  # basic type (or mapping type but we pass a full value)
             # we sanitize by running the type initializer with the value
             if self.t == six.binary_type:
@@ -104,7 +104,7 @@ class Sanitizer(object):
                 return self.t(
                     *(a for a in args if a is not None))  # careful we do not want to pass None to a basic type
         else:
-            TypeCheckerException("Calling {self} with {args} and {kwargs}. not supported".format(**locals()))
+            self.t()  # used for default values
 
     def __repr__(self):
         return "Sanitizer to {self.t}".format(**locals())
@@ -220,10 +220,16 @@ class TypeCheckerException(Exception):
         else:      # This shouldn't happen...
             raise TypeError("message in an exception has to be a string (optionally unicode)")
 
-    def __str__(self):  # when we need a binary string
+    def __bytes__(self):  # when we need a binary string (python3)
         return self.message.encode('ascii', 'replace')
 
-    def __unicode__(self):  # when we need a text string
+    def __str__(self):  # when we need a binary string (python2) or text string (python3)
+        if sys.version_info > (3, 0):
+            return self.__unicode__()
+        else:  # python 2
+            return self.__bytes__()
+
+    def __unicode__(self):  # when we need a text string (python2)
         return self.message
 
     def __repr__(self):

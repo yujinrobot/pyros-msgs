@@ -32,10 +32,10 @@ def duck_punch(msg_mod, opt_slot_list):
             "OptionalFields has not been found in pyros_msgs.msg subpackage. Make sure you run 'python setup.py generate' before using this package.")
         raise
 
-    def get_settable_fields():
+    def get_settable_field_names():
         return {s: st for s, st in zip(msg_mod.__slots__, msg_mod._slot_types) if st != 'pyros_msgs/OptionalFields'}
 
-    def get_optfields_field():
+    def get_optional_field_names():
         optfields = {s: st for s, st in zip(msg_mod.__slots__, msg_mod._slot_types) if st == 'pyros_msgs/OptionalFields'}
         if len(optfields) > 1:
             raise AttributeError(
@@ -50,21 +50,16 @@ def duck_punch(msg_mod, opt_slot_list):
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
 
-        settable_slots = get_settable_fields()
+        settable_slots = get_settable_field_names()
 
         if args:  # the args for super(msg_mod, self) are fixed to the slots in ros messages
             # so we can change it to kwarg to be more accepting (and more robust for changes)
             kwds.update(zip(settable_slots, args))
             args = ()
 
-        optfields = get_optfields_field()
-
-        for f in optfields:
-            if f in kwds:
-                raise AttributeError(" the field {opt_f[0]} will be automatically managed and should not be set when constructing the message.".format(**locals()))
-
         # We build our own type schema here from our slots
-        # CAREFUL : slot discovery doesnt work well with inheritance -> fine since ROS msgs do not have any inheritance concept.
+        # CAREFUL : slot discovery doesnt work well with inheritance
+        # => fine since ROS msgs do not have any inheritance concept.
         slotsdict = {
             s: typechecker_from_rosfield_opttype(srt)
             for s, srt in settable_slots.items()
@@ -110,25 +105,31 @@ def duck_punch(msg_mod, opt_slot_list):
 
     # Modifying __setattr__ to register initialization if it happens later...
     def set_opt_attr(self, attr, value):
-        if attr in opt_slot_list:
-            for f in get_optfields_field():
-                optfields = getattr(self, f)
-                if optfields and attr != f:
-                    optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)] = True
-        super(msg_mod, self).__setattr__(attr, value)
+        if attr not in get_optfields_field():
+            if attr in opt_slot_list and value is not None:
+                for f in get_optfields_field():
+                    optfields = getattr(self, f)
+                    if optfields and attr != f:
+                        optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)] = True
+            super(msg_mod, self).__setattr__(attr, value)
+        else:
+            pass  # opt_fields not settable. silently ignore...
 
     msg_mod.__setattr__ = set_opt_attr
 
-    # Modifying __getattr__ to return none for an optional field if it was not explicitly set
-    def get_opt_attr(self, attr):
-        if attr in opt_slot_list:
-            for f in get_optfields_field():
-                optfields = getattr(self, f)
-                if optfields and attr != f and not optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)]:
-                    return None  # the optional field was not set, we return None
-        return super(msg_mod, self).__getattr__(attr)
-
-    msg_mod.__getattr__ = get_opt_attr
+    # NOT NEEDED : ros Message already set None for every uninitialized fields
+    # # Modifying __getattribute__ to return none for an optional field if it was not explicitly set
+    # def get_opt_attr(self, attr):
+    #     if attr in opt_slot_list:
+    #         for f in get_optfields_field():
+    #             optfields = getattr(self, f)
+    #             if optfields and attr != f and not optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)]:
+    #                 return None  # the optional field was not set, we return None
+    #     return super(msg_mod, self).__getattribute__(attr)  # default behaviour (needed to prevent infinite recursion)
+    #
+    # # Ref : https://docs.python.org/3/reference/datamodel.html#object.__getattribute__
+    # # Ref : https://docs.python.org/3/reference/datamodel.html#object.__getattr__
+    # msg_mod.__getattribute__ = get_opt_attr
 
     # duck punching into genpy generated message classes.
     msg_mod.__init__ = init_punch
