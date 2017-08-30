@@ -51,7 +51,9 @@ rosfield_typechecker = {
     'float32': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -3.4028235e+38, 3.4028235e+38)),
     'float64': TypeChecker(Sanitizer(float), MinMax(Accepter(float), -1.7976931348623157e+308, 1.7976931348623157e+308)),  # we get these values from numpy, maybe we should use numpy (finfo, iinfo) directly here?
     # CAREFUL between ROS who wants byte string, and python3 where everything is unicode...
-    'string': TypeChecker(Sanitizer(six.binary_type), Any(Accepter(six.binary_type), CodePoint(Accepter(six.text_type), min_cp=0, max_cp=127))),
+    # Ref : https://github.com/ros/genpy/pull/85
+    'string': TypeChecker(Sanitizer(six.text_type), Any(CodePoint(Accepter(six.text_type), min_cp=0, max_cp=127))),
+    # 'string': TypeChecker(Sanitizer(six.binary_type), Any(Accepter(six.binary_type), CodePoint(Accepter(six.text_type), min_cp=0, max_cp=127))),
 }
 
 
