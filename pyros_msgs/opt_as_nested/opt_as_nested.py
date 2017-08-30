@@ -47,6 +47,27 @@ def duck_punch(msg_mod, opt_slot_list):
                     **locals()))
         return optfields
 
+    # Modifying __setattr__ to register initialization of slots...
+    def set_opt_attr(self, attr, value):
+        if attr in opt_slot_list:
+            for f in get_optfields_field():
+                optfields = getattr(self, f)
+                if optfields and attr != f:
+                    # Careful : opt field value cannot be None
+                    optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)] = (value is not None)
+        # If we are not the optfield or it is a first time setting this slot (from init)
+        if attr not in get_optfields_field() or not hasattr(self, attr):
+            super(msg_mod, self).__setattr__(attr, value)
+
+    # Modifying __getattribute__ to return None for an optional field if it was not explicitly set
+    def get_opt_attr(self, attr):
+        if attr in opt_slot_list:
+            for f in get_optfields_field():
+                optfields = getattr(self, f, None)
+                if optfields and attr != f and not optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)]:
+                    return None  # the optional field was not set, we return None
+        return super(msg_mod, self).__getattribute__(attr)
+
     def init_punch(self, *args, **kwds):
         __doc__ = msg_mod.__init__.__doc__
 
@@ -87,48 +108,34 @@ def duck_punch(msg_mod, opt_slot_list):
             try:
                 if sval is not None:
                     kwds[s] = st(sval)
+                # otherwise it will be set to None by the message init anyway
             except TypeCheckerException as tse:
                 # TODO : improve the exception message
                 # we convert back to a standard python exception
                 raise AttributeError("{sval} does not match the accepted type schema for '{s}' : {st.accepter}".format(**locals()))
 
-        # By now the kwds is filled up with values
-        # the parent init will do the usual ROS message setup.
-        super(msg_mod, self).__init__(*args, **kwds)
-
         # registering fields in current kwds as initialized fields
         for f in optfields:
             setattr(self, f, OptionalFields(
                 optional_field_names=opt_slot_list,
-                optional_field_initialized_=[True if kwds.get(arg) is not None else False for arg in opt_slot_list]
+                optional_field_initialized_=[False for arg in opt_slot_list]
             ))
+
+        # By now the kwds is filled up with values
+        # the parent init will do the usual ROS message setup.
+        # Our setattr will set optional_field_initialized_ in OptionalFields
+        super(msg_mod, self).__init__(*args, **kwds)
 
         # We follow the usual ROS generated message behavior and assign our default values
         for s, st in [(_slot, typechecker_from_rosfield_type(_slot_type)) for _slot, _slot_type in zip(self.__slots__, self._slot_types)]:
             if getattr(self, s) is None:
-                setattr(self, s, st.default())
+                # we use the super setattr implementation to bypass our custom setattr in this case
+                # and not change the initialized optional fields list
+                super(msg_mod, self).__setattr__(s, st.default())
 
-    # Modifying __setattr__ to register initialization if it happens later...
-    def set_opt_attr(self, attr, value):
-        if attr in opt_slot_list:
-            for f in get_optfields_field():
-                optfields = getattr(self, f)
-                if optfields and attr != f:
-                    optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)] = True
-        super(msg_mod, self).__setattr__(attr, value)
-
+    # we setup our setattr/getattr override for ALL cases.
     msg_mod.__setattr__ = set_opt_attr
-
-    # Modifying __getattr__ to return none for an optional field if it was not explicitly set
-    def get_opt_attr(self, attr):
-        if attr in opt_slot_list:
-            for f in get_optfields_field():
-                optfields = getattr(self, f)
-                if optfields and attr != f and not optfields.optional_field_initialized_[optfields.optional_field_names.index(attr)]:
-                    return None  # the optional field was not set, we return None
-        return super(msg_mod, self).__getattr__(attr)
-
-    msg_mod.__getattr__ = get_opt_attr
+    msg_mod.__getattribute__ = get_opt_attr
 
     # duck punching into genpy generated message classes.
     msg_mod.__init__ = init_punch
