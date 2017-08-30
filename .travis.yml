@@ -5,9 +5,11 @@ branches:
     - gh-pages
 
 env:
+  # These will be used to determine the proper version of our dependencies
+  # We will NOT rely on a full ROS installation.
   - ROS_DISTRO=indigo
   - ROS_DISTRO=kinetic
-  # Not LTS
+  # Latest not LTS
   - ROS_DISTRO=lunar
   # to get latest dependencies (not released in a ROS distro yet)
   - ROS_DISTRO=latest
@@ -28,6 +30,13 @@ matrix:
       env: ROS_DISTRO=indigo
     - python: 3.5
       env: ROS_DISTRO=kinetic
+  exclude:
+    # explicitely exclude python3 version not supported by matching linux distro
+    - python: 3.6
+      env: ROS_DISTRO=indigo
+    - python: 3.6
+      env: ROS_DISTRO=kinetic
+
 
 before_install:
 
