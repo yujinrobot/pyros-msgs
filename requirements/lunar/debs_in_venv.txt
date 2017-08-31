@@ -9,6 +9,6 @@ numpy==1.11.0
 -e git+https://github.com/asmodehn/genmsg.git@setuptools#egg=ros_genmsg
 -e git+https://github.com/asmodehn/genpy.git@setuptools-kinetic#egg=ros_genpy
 
-# source access to latest filefinder and rosimport from git ...
--e git+https://github.com/asmodehn/filefinder2.git#egg=filefinder2
--e git+https://github.com/asmodehn/rosimport.git#egg=rosimport
+# These dependencies are python pkgs only and only for tests.
+filefinder2
+rosimport

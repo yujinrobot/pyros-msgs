@@ -39,19 +39,19 @@ import hypothesis.strategies as st
 # The main point here is insuring that any sanitized type will safely serialize and deserialize
 # And also that any type that doesnt safely serialize / deserialize will not pass the type checker
 
-rosmsg_slot_types = [
-    ('bool', st.booleans()),
-    ('int', st.integers()),
-    ('float', st.floats()),
-    ('string', st.binary()),
-    ('time', st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0))),  # ROS time
-    ('duration', st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers())),  # ROS duration
-]
-
-rosmsg_slot_arraytypes = [
-    (s[0] + '[]',  st.lists(elements=s[1]))
-    for s in rosmsg_slot_types
-]
+# rosmsg_slot_types = [
+#     ('bool', st.booleans()),
+#     ('int', st.integers()),
+#     ('float', st.floats()),
+#     ('string', st.binary()),
+#     ('time', st.builds(genpy.Time, secs=st.integers(min_value=0), nsecs=st.integers(min_value=0))),  # ROS time
+#     ('duration', st.builds(genpy.Duration, secs=st.integers(), nsecs=st.integers())),  # ROS duration
+# ]
+#
+# rosmsg_slot_arraytypes = [
+#     (s[0] + '[]',  st.lists(elements=s[1]))
+#     for s in rosmsg_slot_types
+# ]
 
 # TODO : is there a way to generate messages on the fly to test all possible field combinations ?
 
