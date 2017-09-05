@@ -9,7 +9,7 @@ import runpy
 
 # Ref : https://packaging.python.org/single_source_version/#single-sourcing-the-version
 # runpy is safer and a beter habit than exec
-version = runpy.run_path('pyros_msgs/typecheck/_version.py')
+version = runpy.run_path('pyros_msgs/_version.py')
 __version__ = version.get('__version__')
 
 
